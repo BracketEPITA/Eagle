@@ -16,4 +16,7 @@ all: $(SRC)
 	$(OCAML) -o $(ARTIFACT) $^
 
 clean:
-	rm -Rf $(TARGET_DIR)
+	rm -Rf $(TARGET_DIR) && \
+	rm -Rf 	$(filter %.cmx,$(call rwildcard,src/main/ocaml/,*)) \
+			$(filter %.cmi,$(call rwildcard,src/main/ocaml/,*)) \
+			$(filter %.o,$(call rwildcard,src/main/ocaml/,*))
