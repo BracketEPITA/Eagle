@@ -1,6 +1,8 @@
-let main () =
 
-exit 0;;
+let main () = (
+    print_string "Hello world";
+    exit 0
+);;
 
 main ();;
 
