@@ -1,10 +1,10 @@
 type neuron = {
     mutable version : int;
-    mutable value : int;
+    mutable value : float;
     mutable inputs : link list;
     mutable outputs : link list
 } and link = {
-    mutable weight : int;
+    mutable weight : float;
     mutable input : neuron;
     mutable output : neuron
 }
@@ -28,17 +28,17 @@ class network =
         method set_output i neuron =
             outputs.(i) <- neuron
         
-        method set_values (l : int array) = let sum = ref 0 in (
-            Array.iteri (fun e i -> if inputs.(i) <> None then (contents inputs.(i)).value <- e) l;
+        method set_values (l : float array) = let sum = ref 0. in (
+            Array.iteri (fun index v -> if inputs.(index) <> None then (contents inputs.(index)).value <- v) l;
             let recalculate (neurons : neuron option array) = 
-                Array.iter (fun e1 -> 
-                    if (e1 <> None) then (
-                        List.iter (fun e2 -> 
-                            sum := !sum + e2.weight * e2.input.value
-                        ) (contents e1).inputs;
-                        (contents e1).value <- (int_of_float (this#sigma (float_of_int !sum)));
-                        sum := 0;
-                        (contents e1).version <- (contents e1).version + 1
+                Array.iter (fun val1 -> 
+                    if (val1 <> None) then (
+                        List.iter (fun val2 -> 
+                            sum := !sum +. val2.weight *. val2.input.value
+                        ) (contents val1).inputs;
+                        (contents val1).value <- (this#sigma !sum);
+                        sum := 0.;
+                        (contents val1).version <- (contents val1).version + 1
                    )
                 ) neurons in
             (recalculate hidden; recalculate outputs)
