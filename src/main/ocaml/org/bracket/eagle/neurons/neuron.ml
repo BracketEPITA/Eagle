@@ -5,8 +5,8 @@ type neuron = {
     mutable childrens : link list
 } and link = {
     mutable weight : float;
-    mutable input : neuron;
-    mutable output : neuron
+    mutable entry : neuron;
+    mutable exit : neuron
 }
 
 let contents = function
@@ -31,33 +31,33 @@ class network =
         method set_values (l : float array) = let sum = ref 0. in (
             Array.iteri (fun index v -> if inputs.(index) <> None then (contents inputs.(index)).value <- v) l;
             let recalculate (neurons : neuron option array) = 
-                Array.iter (fun val1 -> 
-                    if (val1 <> None) then (
-                        List.iter (fun val2 -> 
-                            sum := !sum +. val2.weight *. val2.input.value
-                        ) (contents val1).parents;
-                        (contents val1).value <- (this#sigma !sum);
+                Array.iter (fun n -> 
+                    if (n <> None) then (
+                        List.iter (fun p -> 
+                            sum := !sum +. p.weight *. p.input.value
+                        ) (contents n).parents;
+                        (contents n).value <- (this#sigma !sum);
                         sum := 0.;
-                        (contents val1).version <- (contents val1).version + 1
+                        (contents n).version <- (contents n).version + 1
                    )
                 ) neurons in
             (recalculate hidden; recalculate outputs)
         )
 
-    method backwardPropagation (n : neuron) (expected : float) (result : float) = 
-        let rec propagate = function
-        | [] -> ()
-        | h::t -> (
-                    h.weight <- h.weight +. (expected -. result) *. (expected -. result) *. 0.25 *. n.value;
-                    propagate t;
-                )
-        in  propagate n.parents
+        method backwardPropagation (n : neuron) (expected : float) (result : float) = 
+            let rec propagate = function
+            | [] -> ()
+            | h::t -> (
+                        h.weight <- h.weight +. (expected -. result) *. (expected -. result) *. 0.25 *. n.value;
+                        propagate t;
+                    )
+            in propagate n.parents
     
-    method train (input : float array) (output : float array) = 
-        this#set_values(input);
-        for i = 0 to Array.length outputs do
-            this#backwardPropagation (contents outputs.(i)) (contents outputs.(i)).value input.(i)
-        done
-
+        method train (input : float array) (output : float array) = (
+            this#set_values(input);
+            Array.iteri (fun i v ->
+                this#backwardPropagation (contents v) (contents v).value input.(i)
+            ) outputs
+        )
     end
 
