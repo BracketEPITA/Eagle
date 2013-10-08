@@ -18,6 +18,7 @@ class network =
         val mutable inputs  = (Array.make (28 * 28) None : neuron option array)
         val mutable outputs = (Array.make (2*26 + 10) None : neuron option array)
         val mutable hidden  = (Array.make 96 None : neuron option array) (* 96 neurons *)
+        val epsilon = 0.25
         
         method sigma (x : float) =
             1. /. (1. +. exp(-. x))
@@ -34,7 +35,7 @@ class network =
                 Array.iter (fun n -> 
                     if (n <> None) then (
                         List.iter (fun p -> 
-                            sum := !sum +. p.weight *. p.input.value
+                            sum := !sum +. p.weight *. p.entry.value
                         ) (contents n).parents;
                         (contents n).value <- (this#sigma !sum);
                         sum := 0.;
@@ -43,21 +44,38 @@ class network =
                 ) neurons in
             (recalculate hidden; recalculate outputs)
         )
-
-        method backwardPropagation (n : neuron) (expected : float) (result : float) = 
-            let rec propagate = function
-            | [] -> ()
-            | h::t -> (
-                        h.weight <- h.weight +. (expected -. result) *. (expected -. result) *. 0.25 *. n.value;
+        method outputsBackpropagation (n : neuron) (expected : float) = 
+            let delta = (n.value *. (1. -. n.value) *. (expected -. n.value)) *. epsilon *. n.value
+            in let rec propagate = function
+                | [] -> ()
+                | h::t -> (
+                        h.weight <- h.weight -. delta;
+                        this#hiddenBackpropagation h.entry delta;
                         propagate t;
                     )
+            in  propagate n.parents
+
+        method hiddenBackpropagation (n : neuron) (delta : float) = 
+            let rec outputsSum = function
+                | [] -> 0.
+                | h::t -> h.weight *. delta +. outputsSum t
+            in let hiddenDelta = (n.value *. (1. -. n.value) *. outputsSum n.childrens) *. epsilon *. n.value
+            in let rec propagate = function
+                | [] -> ()
+                | h::t -> (
+                            h.weight <- h.weight -. hiddenDelta;
+                            propagate t
+                        )
             in propagate n.parents
-    
+
+
+
         method train (input : float array) (output : float array) = (
             this#set_values(input);
             Array.iteri (fun i v ->
-                this#backwardPropagation (contents v) (contents v).value input.(i)
+                this#outputsBackpropagation (contents v) output.(i)
             ) outputs
         )
+    
     end
 
