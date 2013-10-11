@@ -9,10 +9,6 @@ type neuron = {
     mutable exit : neuron
 }
 
-let contents = function
-    | Some c -> c
-    | None   -> raise (Invalid_argument "None has no contents")
-
 let new_neuron () = {version = 0; value = 0.; parents = []; children = []}
 
 class network epsilon (inputs : neuron array) (outputs : neuron array) (hidden : neuron array) =
