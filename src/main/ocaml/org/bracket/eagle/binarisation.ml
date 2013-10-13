@@ -1,4 +1,4 @@
-et get_dims img =
+let get_dims img =
   ((Sdlvideo.surface_info img).Sdlvideo.w, (Sdlvideo.surface_info img).Sdlvideo.h)
  
 (* init de SDL *)
