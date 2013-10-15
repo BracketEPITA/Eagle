@@ -1,6 +1,6 @@
 
 let main () = (
-    print_string "Hello world";
+    deserialize "test.txt"
     exit 0
 );;
 

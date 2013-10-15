@@ -1,12 +1,12 @@
 type neuron = {
-    mutable version : int;
-    mutable value : float;
-    mutable parents : link list;
+    mutable version  : int;
+    mutable value    : float;
+    mutable parents  : link list;
     mutable children : link list
 } and link = {
-    mutable weight : float;
-    mutable entry : neuron;
-    mutable exit : neuron
+    mutable weight   : float;
+    mutable entry    : neuron;
+    mutable exit     : neuron
 }
 
 let new_neuron () = {version = 0; value = 0.; parents = []; children = []}
@@ -86,3 +86,61 @@ let new_network () = (
         new network 0.25 inputs outputs hidden;
 )
 
+class tokenizer fileName =
+
+    object (this)
+
+        val in_channel     = open_in fileName
+        val delimiters     = ['['; ']'; ';'; ' '; '\t']
+
+        val mutable line   = ""
+        val mutable index  = 0
+        val mutable length = 1
+        val mutable token  = ""
+
+        method next =
+            try
+                while token = "" do
+                    if index = length - 1 then
+                        (
+                            line   <- input_line in_channel;
+                            index  <- 0;
+                            length <- String.length line;
+                        )
+                    else ();
+
+                    match (line.[index]) with
+                        | '[' -> token <- "["
+                        | ']' -> token <- "]"
+                        | ':' -> token <- ":"
+                        | _ -> (
+                            let start = index in
+                            index <- index + 1;
+                            while index < length && not (this#isInList line.[index]) do
+                                index <- index + 1
+                            done;
+                            token <- String.sub line start (index - start)
+                        )
+                done;
+                token
+            with End_of_file -> close_in in_channel;
+            token <- "";
+            token
+
+        method isInList x =
+            let rec isInListRec x = function
+                | []   -> false
+                | h::t when h = x ->true
+                | h::t -> isInListRec x t
+            in isInListRec x delimiters
+
+    end
+
+
+let deserialize fileName =
+    let t      = new tokenizer fileName in 
+    let token  = ref t#next in
+    (*let neuron = ref new_neuron () in*)
+    while !token <> "" do
+        print_string !token
+    done
