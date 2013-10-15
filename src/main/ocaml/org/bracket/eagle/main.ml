@@ -1,6 +1,6 @@
 
 let main () = (
-    deserialize "test.txt"
+    Neuron.deserialize "test.txt";
     exit 0
 );;
 

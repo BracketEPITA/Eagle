@@ -101,6 +101,7 @@ class tokenizer fileName =
         method next =
             try
                 while token = "" do
+                    print_string ("Next");
                     if index = length - 1 then
                         (
                             line   <- input_line in_channel;
@@ -123,9 +124,10 @@ class tokenizer fileName =
                         )
                 done;
                 token
-            with End_of_file -> close_in in_channel;
+            with End_of_file -> 
+            (close_in in_channel;
             token <- "";
-            token
+            token)
 
         method isInList x =
             let rec isInListRec x = function
@@ -140,7 +142,13 @@ class tokenizer fileName =
 let deserialize fileName =
     let t      = new tokenizer fileName in 
     let token  = ref t#next in
+    let i      = ref 0 in
     (*let neuron = ref new_neuron () in*)
-    while !token <> "" do
-        print_string !token
+    while ((!token) <> "" && !i < 10) do
+        (
+            print_string (!token ^ (string_of_int (!i)) ^ "\n");
+            i := !i + 1;
+            token := t#next;
+        )
+
     done
