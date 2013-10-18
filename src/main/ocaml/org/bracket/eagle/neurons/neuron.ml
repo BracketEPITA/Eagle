@@ -1,15 +1,22 @@
+let iteri f l = 
+    let rec iteri_rec i = function
+        | []   -> ()
+        | h::t -> (f i h; iteri_rec (i + 1) t)
+    in iteri_rec 0 l
+
 type neuron = {
     mutable version  : int;
     mutable value    : float;
     mutable parents  : link list;
-    mutable children : link list
+    mutable children : link list;
+    mutable index    : int;
 } and link = {
     mutable weight   : float;
     mutable entry    : neuron;
     mutable exit     : neuron
 }
 
-let new_neuron () = {version = 0; value = 0.; parents = []; children = []}
+let new_neuron () = {version = 0; value = 0.; parents = []; children = []; index = 0}
 
 let fabs x = if x < 0. then x else -. x
 
@@ -17,6 +24,11 @@ class network epsilon (inputs : neuron array) (outputs : neuron array) (hidden :
     object (this)
         method sigma (x : float) =
             x /. (1. +. fabs(x))
+        method getLayer = function
+            | 0 -> inputs
+            | 1 -> hidden
+            | 2 -> outputs
+            | _ -> inputs
 
         method set_values (l : float array) = 
             let sum = ref 0. in 
@@ -79,6 +91,31 @@ class network epsilon (inputs : neuron array) (outputs : neuron array) (hidden :
         )
     
     end
+
+
+let serealize net file = 
+    let oc = open_out file in
+    for i = 0 to 3 do
+        let layer = net#getLayer i in
+        for j = 0 to Array.length layer do
+            let inputs = ref "" in
+            iteri (
+                fun index value -> (
+                    inputs := !inputs ^ (Printf.sprintf "l%d:w%f:n%d" index
+                    value.weight value.exit.index)
+                )
+            ) (layer.(j)).parents; 
+            let outputs = ref "" in
+            iteri (
+                fun index value -> (
+                    outputs := !inputs ^ (Printf.sprintf "l%d:w%f:n%d" index
+                        value.weight value.exit.index )
+                )
+            ) (layer.(j)).children;
+            Printf.fprintf oc "n%d %d [%s] [%s]\n" j i !inputs !outputs 
+
+        done
+    done
 
 let new_network () = (
     Random.self_init();
