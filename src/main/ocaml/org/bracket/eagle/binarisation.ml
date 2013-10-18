@@ -51,8 +51,19 @@ let seuil img =
 		!sum /. float_of_int (w*h) 
 	
 
-let binarisation img dst = let seuil = seuil img in imageiter (fun x y -> Sdlvideo.put_pixel_color dst x y (if(level(Sdlvideo.get_pixel_color img x y)) < seuil then (0,0,0) else (255,255,255))) img
+let binarisation img dst =
+    let seuil = seuil img in 
+    imageiter (
+        fun x y -> Sdlvideo.put_pixel_color dst x y (
+            if(level(Sdlvideo.get_pixel_color img x y)) < seuil then (0,0,0) 
+            else (255,255,255)
+        )
+    ) img
 
 
 
-let makelistofblack img = let l = ref [] and seuil = seuil img in imageiter (fun x y -> if(level(Sdlvideo.get_pixel_color img x y) > seuil) then l:= (x,y)::!l) img  
+let makelistofblack img = 
+    let l = ref [] and seuil = seuil img in 
+    imageiter (
+        fun x y -> if(level(Sdlvideo.get_pixel_color img x y) > seuil) then l:= (x,y)::!l
+     ) img  
