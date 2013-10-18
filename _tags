@@ -1,3 +1,4 @@
-<*.{byte,native}>: package(sdl), package(sdl.sdlimage)
-<*.ml>: package(sdl), package(sdl.sdlimage)
-<*.mli>: package(sdl), package(sdl.sdlimage)
+"src/main/ocaml/org/bracket/eagle" or "src/main/ocaml/org/bracket/eagle/matrix" or "src/main/ocaml/org/bracket/eagle/image" or "src/main/ocaml/org/bracket/neurons": include
+<**/*.{byte,native}>: package(sdl), package(sdl.sdlimage)
+<**/*.ml>: package(sdl), package(sdl.sdlimage)
+<**/*.mli>: package(sdl), package(sdl.sdlimage)
