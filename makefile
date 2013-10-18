@@ -7,7 +7,7 @@ ARTIFACT=$(TARGET_DIR)$(NAME)-$(VERSION)
 DIR=src/main/ocaml/org/bracket/eagle/
 
 OCAML=ocamlbuild
-OCOPT=-use-ocamlfind -build-dir $(TARGET_DIR)build -install-bin-dir $(TARGET_DIR)
+OCOPT=-use-ocamlfind -r -build-dir $(TARGET_DIR)build -install-bin-dir $(TARGET_DIR)
 
 .PHONY:
 all: eagle
