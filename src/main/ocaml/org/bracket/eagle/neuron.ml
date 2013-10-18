@@ -136,8 +136,7 @@ class tokenizer fileName =
                 | h::t -> isInListRec x t
             in isInListRec x delimiters
 
-    end
-
+    end 
 
 let deserialize fileName =
     let t      = new tokenizer fileName in 
