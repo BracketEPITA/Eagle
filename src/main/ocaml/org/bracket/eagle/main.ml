@@ -1,6 +1,6 @@
 
 let main () = (
-    print_string "Hello world";
+    Neuron.deserialize "test.txt";
     exit 0
 );;
 
