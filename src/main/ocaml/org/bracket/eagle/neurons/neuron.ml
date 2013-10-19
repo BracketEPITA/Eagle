@@ -17,6 +17,7 @@ type neuron = {
 }
 
 let new_neuron () = {version = 0; value = 0.; parents = []; children = []; index = 0}
+let neuronWithIndex i = { (new_neuron ()) with index = i}
 
 let fabs x = if x < 0. then x else -. x
 
@@ -95,6 +96,11 @@ class network epsilon (inputs : neuron array) (outputs : neuron array) (hidden :
 
 let serealize net file = 
     let oc = open_out file in
+    
+    (* Printing Layer depth *)
+    Printf.fprintf oc "%d %d %d" (Array.length (net#getLayer 0))
+    (Array.length (net#getLayer 1)) (Array.length (net#getLayer 2));
+
     for i = 0 to 3 do
         let layer = net#getLayer i in
         for j = 0 to Array.length layer do
@@ -151,10 +157,10 @@ class tokenizer fileName =
         val mutable token  = ""
 
         method next =
+            token <- "";
             try
                 while token = "" do
-                    print_string ("Next");
-                    if index = length - 1 then
+                    if index = length - 1 || index = length then
                         (
                             line   <- input_line in_channel;
                             index  <- 0;
@@ -193,12 +199,17 @@ class tokenizer fileName =
 let deserialize fileName =
     let t      = new tokenizer fileName in 
     let token  = ref t#next in
-    let i      = ref 0 in
-    (*let neuron = ref new_neuron () in*)
-    while ((!token) <> "" && !i < 10) do
+    let nn i   = neuronWithIndex i in
+    let input  = Array.init (int_of_string !token) nn in
+    token := t#next;
+    let hidden = Array.init (int_of_string !token) nn in
+    token := t#next;
+    let output = Array.init (int_of_string !token) nn in
+    token := t#next;
+
+    while ((!token) <> "") do
         (
-            print_string (!token ^ (string_of_int (!i)) ^ "\n");
-            i := !i + 1;
+             
             token := t#next;
         )
 
