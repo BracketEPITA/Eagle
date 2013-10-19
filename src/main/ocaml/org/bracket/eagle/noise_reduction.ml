@@ -77,7 +77,7 @@ let main () =
   begin
     (* Nous voulons 1 argument *)
     if Array.length (Sys.argv) < 2 then
-      failwith "Il manque le nom du fichier!";
+      failwith "Filename is missing!";
     (* Initialisation de SDL *)
     sdl_init ();
     (* Chargement d'une image *)
