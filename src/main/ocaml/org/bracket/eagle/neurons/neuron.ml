@@ -200,11 +200,11 @@ let deserialize fileName =
     let t      = new tokenizer fileName in 
     let token  = ref t#next in
     let nn i   = neuronWithIndex i in
-    let input  = Array.init (int_of_string !token) nn in
+    let input  = Array.init (Math.ios !token) nn in
     token := t#next;
-    let hidden = Array.init (int_of_string !token) nn in
+    let hidden = Array.init (Math.ios !token) nn in
     token := t#next;
-    let output = Array.init (int_of_string !token) nn in
+    let output = Array.init (Math.ios !token) nn in
     token := t#next;
 
     while ((!token) <> "") do
