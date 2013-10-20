@@ -1,3 +1,5 @@
+open Math.Universe
+
 type decomposition_state = {
     mutable lu : float Matrix.matrix;
     mutable piv : int array;
@@ -19,7 +21,7 @@ let init m =
             let kmax = min i j - 1 in
             let s = ref 0. in
             for k = 0 to kmax do
-                s := !s +. lu.(i).(k) *. lu_col.(k);
+                ignore (s +.= lu.(i).(k) *. lu_col.(k));
             done;
             lu_col.(i) <- lu_col.(i) -. !s;
             lu.(i).(j) <- lu_col.(i);
