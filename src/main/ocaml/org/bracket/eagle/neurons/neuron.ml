@@ -16,6 +16,7 @@ type neuron = {
     mutable exit     : neuron
 }
 
+let getvalue x = x.value
 let new_neuron () = {version = 0; value = 0.; parents = []; children = []; index = 0}
 let neuronWithIndex i = { (new_neuron ()) with index = i}
 
@@ -33,25 +34,18 @@ class network epsilon (inputs : neuron array) (outputs : neuron array) (hidden :
 
         method set_values (l : float array) = 
             let sum = ref 0. in 
-                Printf.printf "Input neurons :\n";
-                Array.iteri (fun index v -> Printf.printf "n%d -> %f\n" index v; inputs.(index).value <- v) l;
-                print_newline ();
+                Array.iteri (fun index v -> inputs.(index).value <- v) l;
                 let recalculate neurons = 
                     Array.iteri (fun i n ->
                         List.iter (fun p ->
                             sum := !sum +. p.weight *. p.entry.value
                         ) n.parents;
-                        Printf.printf "sum = %f\t" !sum;
                         n.value <- (this#sigma !sum);
-                        Printf.printf "n%d -> %f\n" i n.value;
                         sum := 0.;
                         n.version <- n.version + 1;
                     ) neurons;
-                    print_newline ();
                 in 
-                    Printf.printf "Hidden neurons :\n";
                     recalculate hidden;
-                    Printf.printf "Output neurons :\n";
                     recalculate outputs
 
         method get_outputs =
@@ -82,19 +76,16 @@ class network epsilon (inputs : neuron array) (outputs : neuron array) (hidden :
                         )
             in propagate n.parents
 
-
-
         method train (input : float array) (output : float array) = (
             this#set_values(input);
-            (*Array.iteri (fun i v ->
+            Array.iteri (fun i v ->
                 this#outputsBackpropagation v output.(i)
-            ) outputs*)
+            ) outputs
         )
     
     end
 
-
-let serealize net file = 
+let serialize net file = 
     let oc = open_out file in
     
     (* Printing Layer depth *)
@@ -125,10 +116,10 @@ let serealize net file =
 
 let new_network () = (
     Random.self_init();
-    let nn i = new_neuron () in
+    let nn i = neuronWithIndex i in
     let inputs  = Array.init 2 nn in
     let outputs = Array.init 1 nn in
-    let hidden  = Array.init 2 nn in
+    let hidden  = Array.init 20 nn in
     let populate l1 l2 = (
         Array.iter (fun entry -> 
             Array.iter (fun exit -> 
