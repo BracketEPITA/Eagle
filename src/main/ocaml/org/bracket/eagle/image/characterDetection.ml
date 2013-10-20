@@ -18,7 +18,7 @@ let show img dst =
     Sdlvideo.blit_surface d dst ();
     Sdlvideo.flip dst
 
-let propagate img x y m =
+let propagate img x y yMini yMaxi m =
     let xMin = ref x in
     let yMin = ref y in
     let xMax = ref x in
@@ -37,8 +37,11 @@ let propagate img x y m =
                 yMax := max (!yMax) y;
                 propagate_rec (x + 1) y;
                 propagate_rec (x - 1) y;
-                propagate_rec x (y + 1); 
-                propagate_rec x (y - 1);
+                for i = yMini to yMaxi do
+                    propagate_rec x (y + i);
+                    propagate_rec (x + 1) (y + i);
+                    propagate_rec (x - 1) (y + i);
+                done;
             )
     in (propagate_rec x y);
     (!xMin, !yMin, !xMax, !yMax)
@@ -66,11 +69,44 @@ let imageRun img dst =
         for y = 0 to h - 1 do
             Sdlvideo.put_pixel_color dst x y (Sdlvideo.get_pixel_color img x y);
             if not(m.(x).(y)) && Sdlvideo.get_pixel_color img x y = (0, 0, 0)  then
-                blocks := (propagate img x y m)::(!blocks);
+                blocks := (propagate img x y (-4) (4) m)::(!blocks);
         done;
     done;
     drawRectangles dst !blocks
-    
+
+let drawLineAt img y w =
+    for x = 0 to w - 1 do
+        Sdlvideo.put_pixel_color img x y (255, 0, 0);
+    done
+(*
+let lines img dst = 
+    let prevLine    = ref false in
+    let currentLine = ref false in
+
+    let (w, h) = get_dims img in 
+    let lines = Array.make h false in
+    for y = 0 to h - 1 do
+        for x = 0 to y - 1 do
+            Sdlvideo.put_pixel_color dst x y (Sdlvideo.get_pixel_color img x y);
+            currentLine := !currentLine || ((Sdlvideo.get_pixel_color img x y)
+            == (0, 0, 0));
+        done;
+        if !currentLine && not (!prevLine) then
+            (
+                lines.(y) <- true;
+                drawLineAt dst y w;
+            )
+
+        else
+            if (not(!currentLine) && (!prevLine)) then
+                (
+                    lines.(y - 1) <-true;
+                    drawLineAt dst y w
+                )
+        prevLine := !currentLine;
+    done 
+*)
+
 let main () =
     begin
         if Array.length (Sys.argv) < 2 then
