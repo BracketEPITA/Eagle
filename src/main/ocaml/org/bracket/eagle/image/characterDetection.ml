@@ -28,7 +28,7 @@ let propagate img x y m =
         if x < 0 || x >= Array.length m || y < 0 || y >= Array.length m.(x) then
             ()
         else
-            if m.(x).(y) || Sdlvideo.get_pixel_color img x y = (0, 0, 0) then ()
+            if m.(x).(y) || Sdlvideo.get_pixel_color img x y <> (0, 0, 0) then ()
             else (
                 m.(x).(y) <- true;
                 xMin := min (!xMin) x;
@@ -46,15 +46,14 @@ let propagate img x y m =
 let rec drawRectangles img = function
     |[] -> ()
     |(xMin, yMin, xMax, yMax)::t -> (
-        (*for x = xMin to xMax do
+        for x = xMin to xMax do
             Sdlvideo.put_pixel_color img x yMin (255, 0, 0);        
             Sdlvideo.put_pixel_color img x yMax (255, 0, 0);
         done;
         for y = yMin to yMax do
             Sdlvideo.put_pixel_color img xMin y (255, 0, 0);
             Sdlvideo.put_pixel_color img xMax y (255, 0, 0);
-        done;*)
-        Printf.printf "(%d, %d, %d, %d)" xMin yMin xMax yMax;
+        done;
         drawRectangles img t;
     )
 
@@ -65,7 +64,8 @@ let imageRun img dst =
     let blocks = ref [] in
     for x = 0 to w - 1 do
         for y = 0 to h - 1 do
-            if not(m.(x).(y)) && Sdlvideo.get_pixel_color img x y <> (0, 0, 0)  then
+            Sdlvideo.put_pixel_color dst x y (Sdlvideo.get_pixel_color img x y);
+            if not(m.(x).(y)) && Sdlvideo.get_pixel_color img x y = (0, 0, 0)  then
                 blocks := (propagate img x y m)::(!blocks);
         done;
     done;
@@ -84,6 +84,7 @@ let main () =
             let dst = Sdlvideo.create_RGB_surface_format img [] w h in
             imageRun img dst;
             show dst display;
+            wait_key ();
             exit 0
         end
        
