@@ -1,16 +1,49 @@
+let sdl_init () =
+    begin
+        Sdl.init [`EVERYTHING];
+        Sdlevent.enable_events Sdlevent.all_events_mask;
+    end
+let rec wait_key () =
+    let e = Sdlevent.wait_event () in
+    match e with
+        Sdlevent.KEYDOWN _ -> ()
+        | _                -> wait_key ()
+        
+let show img dst =
+    let d = Sdlvideo.display_format img in
+    Sdlvideo.blit_surface d dst ();
+    Sdlvideo.flip dst
+let get_dims img =
+    ((Sdlvideo.surface_info img).Sdlvideo.w, (Sdlvideo.surface_info img).Sdlvideo.h)
 
-let main () = (
-    let network = Neuron.new_network () in
-    let inputs = [|1.; 0.|] and outputs = [|0.|] in
-    for i = 0 to 40000 do
-        network#train inputs outputs ;
-    done;
+
+
+let main () =
+    begin
+        if Array.length (Sys.argv) < 2 then
+            failwith "Il manque le nom du fichier!";
+        sdl_init ();
+        let img = Sdlloader.load_image Sys.argv.(1) in
+        let (w,h) = get_dims img in
+        let display = Sdlvideo.set_video_mode w h [`DOUBLEBUF] in
+            
+            (* Images surfaces *)
+            let denoised  = Sdlvideo.create_RGB_surface_format img [] w h in
+            let binarized = Sdlvideo.create_RGB_surface_format img [] w h in
+            let rotated   = Sdlvideo.create_RGB_surface_format img [] w h in 
     
-    network#set_values inputs;
-    Printf.printf "Success of %f\n" (Neuron.getvalue (network#getLayer 2).(0));
-
-    exit 0
-)
+            (* OPerations on images *)
+            NoiseReduction.median img denoised 1;
+            Binarisation.binarisation denoised binarized;
+            
+            (* Displaying  *)
+            show img       display; wait_key();
+            show denoised  display; wait_key();
+            show binarized display; wait_key();
+            
+            exit 0
+    end
 
 let _ = main ()
+
 
