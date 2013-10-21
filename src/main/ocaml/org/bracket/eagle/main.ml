@@ -30,17 +30,24 @@ let main () =
             (* Images surfaces *)
             let denoised  = Sdlvideo.create_RGB_surface_format img [] w h in
             let binarized = Sdlvideo.create_RGB_surface_format img [] w h in
-            let rotated   = Sdlvideo.create_RGB_surface_format img [] w h in 
+            let detected  = Sdlvideo.create_RGB_surface_format img [] w h in
     
             (* OPerations on images *)
-            NoiseReduction.median img denoised 1;
-            Binarisation.binarisation denoised binarized;
-            
-            (* Displaying  *)
+            NoiseReduction.median     img       denoised  1;
+            Binarisation.binarisation denoised  binarized;
+            let rotated = Rotation.rotation
+                binarized
+                (Hough.hough binarized) in
+            CharacterDetection.imageRun img detected;
+
+            (* Displaying *)
             show img       display; wait_key();
             show denoised  display; wait_key();
             show binarized display; wait_key();
-            
+            show rotated   display; wait_key();
+            show detected  display; wait_key();
+
+
             exit 0
     end
 

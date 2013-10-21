@@ -43,5 +43,5 @@ let hough img =
                 )
         done;
     done;
-    ((!maxTheta -. piOver2) *. 180. /. pi)
+    !maxTheta -. piOver2
 
