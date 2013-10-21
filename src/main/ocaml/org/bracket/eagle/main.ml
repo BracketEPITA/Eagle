@@ -16,12 +16,49 @@ let show img dst =
 let get_dims img =
     ((Sdlvideo.surface_info img).Sdlvideo.w, (Sdlvideo.surface_info img).Sdlvideo.h)
 
+let matrixLength str = 
+    let l = ref 1 in
+    for i = 0 to (String.length str) - 1 do
+        if str.[i] = ' ' then
+            l := !l + 1;
+    done;
+    !l
 
+let split str = 
+    let matrix = Array.make (max 1 (matrixLength str)) "" in (* max for outof
+    bounds case *)
+    let l = ref 0 in
+    for i = 0 to (String.length str) - 1 do
+        if str.[i] = ' ' then
+            l := !l + 1
+        else
+            matrix.(!l) <- matrix.(!l) ^ String.make 1 str.[i];
+    done;
+    matrix
+        
+let argCheck x words = 
+    if Array.length (words) < x then
+        raise (Invalid_argument "Un message")
 
 let main () =
     begin
         if Array.length (Sys.argv) < 2 then
             failwith "Il manque le nom du fichier!";
+        let exitShell = ref false in
+        while not !exitShell do
+            try
+                let line = read_line () in
+                let words = split line in
+                match words.(0) with
+                    |"bin" -> (
+                        argCheck 3 words;
+                    )
+            with 
+            | Invalid_argument s -> Printf.printf "%s\n" s
+            | _                  -> Printf.printf "Uncaught Exception \n"
+        done;
+
+
         sdl_init ();
         let img = Sdlloader.load_image Sys.argv.(1) in
         let (w,h) = get_dims img in
