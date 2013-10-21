@@ -1,10 +1,30 @@
 open Math.Universe
 
 module ActivationFunction = struct
-    type func = (float -> float)
-    let linear (x : float) = x
-    let sigmoid x = 1. /. (1. +. exp(-. x))
-    let tanh = ()
+    type func = {
+        f : (float -> float);
+        derivative : (float -> float);
+    }
+    let linear = {
+        f = (fun (x : float) -> x);
+        derivative = (fun x -> 1.);
+    }
+    let sigmoid = {
+        f = (fun x -> 1. /. (1. +. exp(-. x)));
+        derivative = (fun x -> x *. (1. -. x) +. 0.1);
+    }
+    let tanh = {
+        f = (fun x -> tanh x);
+        derivative = (fun x -> 1. -. x *. x);
+    }
+    let sigmoid_alt = {
+        f = (fun x -> x /. sqrt (1. +. x *. x));
+        derivative = (fun x -> 
+            let xs = x *. x in
+            let xs2 = (xs +. 1.) *. (xs +. 1.) in 
+                (1. -. xs) /. xs2
+        )
+    }
 end
 
 type network_data = {
@@ -33,31 +53,28 @@ class basic_network (data : network_data) =
         )
 
         method set_values inputs = (
-            let compute_layer 
-                (layer      : float array) 
-                (previous   : float array)
-                (weights    : float array)
-                (activation : ActivationFunction.func)
-            = (
+            let compute_layer index = (
+                let layer = data.layers.(index) in
+                let previous = data.layers.(index - 1) in
+                let weights = data.weights.(index - 1) in
+                let activation = data.activations.(index - 1) in
                 let w = ref 0 in
-                for i = 0 to Array.length layer - 1 do
+                let last_layer = index = Array.length data.layers - 1 in
+                let l = Array.length layer - if last_layer then 1 else 2 in
+                for i = 0 to l do
                     let sum = ref 0. in
                     Array.iter (fun prev -> 
                         ignore (sum +.= (weights.(!w) *. prev));
                         ignore ((++) w)
                     ) previous;
-                    layer.(i) <- activation !sum;
+                    layer.(i) <- activation.ActivationFunction.f !sum;
                 done
             ) in
             Array.iteri (fun i input ->
                 data.layers.(0).(i) <- input;
             ) inputs;
             for i = 1 to Array.length data.layers - 1 do 
-                compute_layer
-                    data.layers.(i) 
-                    data.layers.(i - 1)
-                    data.weights.(i - 1)
-                    data.activations.(i - 1)
+                compute_layer i;
             done;
             data.layers.(Array.length data.layers - 1)
         )
@@ -73,12 +90,29 @@ class basic_network (data : network_data) =
 
 let new_network () =
     Random.self_init ();
-    let layers = [| [|0.; 0.|]; [|0.; 0.|]; [|0.|] |] in
-    let weights =
-    [| 
-        [|Random.float 1.; Random.float 1.; Random.float 1.; Random.float 1.|];
-        [|Random.float 1.; Random.float 1.|]
+    let l = Array.length in
+    let layers = [|
+        Array.make 50 0.;
+        Array.make 10 0.;
+        Array.make 4 0.
     |] in
-    let activations = [|ActivationFunction.linear; ActivationFunction.sigmoid|] in
-    let data = {layers = layers; weights = weights; activations = activations} in
-    new basic_network data;
+    for i = 0 to l layers - 2 do
+        layers.(i).(l layers.(i) - 1) <- 1.;
+    done;
+    let weights = Array.init (l layers - 1) (fun i -> 
+        let l1 = l layers.(i) and l2 = l layers.(i + 1) in
+        let s = l1 * (l2 + if i = l layers - 2 then 0 else -1) in
+        Array.init s (fun j ->
+            Random.float 1.
+        )
+    ) in
+    let activations = [|
+        ActivationFunction.sigmoid;
+        ActivationFunction.sigmoid
+    |] in
+    let data = {
+        layers = layers; 
+        weights = weights; 
+        activations = activations
+    } in
+        new basic_network data;
