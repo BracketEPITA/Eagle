@@ -24,3 +24,11 @@ module Universe = struct
     let ( ~-- ) a = a -= 1
     let (  -- ) = (~--)
 end
+
+let iof x = int_of_float x
+let foi x = float_of_int x
+
+let soi x = string_of_int x
+let ios x = int_of_string x
+
+
