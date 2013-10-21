@@ -38,52 +38,71 @@ let split str =
         
 let argCheck x words = 
     if Array.length (words) < x then
-        raise (Invalid_argument "Un message")
+        raise (Invalid_argument "Not enough args")
+        
+let apply str dest f = 
+    let img = Sdlloader.load_image str in
+    let (w,h) = get_dims img in
+    let display = Sdlvideo.set_video_mode w h [`DOUBLEBUF] in
+    let dst = Sdlvideo.create_RGB_surface_format img [] w h in
+    f img dst;
+    Sdlvideo.save_BMP dst dest;
+    show img display; wait_key ();
+    show dst display; wait_key ()
 
 let main () =
     begin
-        if Array.length (Sys.argv) < 2 then
-            failwith "Il manque le nom du fichier!";
         let exitShell = ref false in
+        
         while not !exitShell do
-            try
+            sdl_init ();
+            (try
+                Printf.printf "> ";
                 let line = read_line () in
                 let words = split line in
                 match words.(0) with
-                    |"bin" -> (
+                    | "bin" -> (
                         argCheck 3 words;
+                        apply words.(1) words.(2) Binarisation.binarisation
                     )
+                    | "bint" -> ()
+                    | "nred" -> (
+                        argCheck 3 words;
+                        let radius = if Array.length words  >= 4 then int_of_string
+                        words.(3) else 1 in
+                        apply words.(1) words.(2) (fun img dst ->
+                            NoiseReduction.median img dst radius)
+                    )
+                    | "hough" -> (
+                                argCheck 2 words;
+                                let img = Sdlloader.load_image words.(1) in
+                                let angle = Hough.hough img in
+                                Printf.printf "Hough angle is %f\n" (-angle +.
+                                0.5)
+                            )
+                    | "rot" -> (
+                        argCheck 4 words;
+                        let img = Sdlloader.load_image words.(1) in
+                        let dst = Rotation.rotation img (float_of_string
+                        words.(3)) in 
+                        let (w, h) = get_dims dst in
+                        let display = Sdlvideo.set_video_mode w h [`DOUBLEBUF]
+                        in show dst display;
+                        wait_key ();
+                    )
+                    | "char" -> (
+                        argCheck 3 words;
+                        apply words.(1) words.(2) CharacterDetection.imageRun
+                    )
+                    | "oldChar" -> (
+                        argCheck 3 words;
+                        apply words.(1) words.(2) CharacterDetection.oldImageRun
+                    )
+                    | _     -> Printf.printf "Unknown command \n" 
             with 
-            | Invalid_argument s -> Printf.printf "%s\n" s
-            | _                  -> Printf.printf "Uncaught Exception \n"
+            | Invalid_argument s -> Printf.printf "%s\n" s);
+            Sdl.quit ();
         done;
-
-
-        sdl_init ();
-        let img = Sdlloader.load_image Sys.argv.(1) in
-        let (w,h) = get_dims img in
-        let display = Sdlvideo.set_video_mode w h [`DOUBLEBUF] in
-            
-            (* Images surfaces *)
-            let denoised  = Sdlvideo.create_RGB_surface_format img [] w h in
-            let binarized = Sdlvideo.create_RGB_surface_format img [] w h in
-            let detected  = Sdlvideo.create_RGB_surface_format img [] w h in
-    
-            (* OPerations on images *)
-            NoiseReduction.median     img       denoised  1;
-            Binarisation.binarisation denoised  binarized;
-            let rotated = Rotation.rotation
-                binarized
-                (Hough.hough binarized) in
-            CharacterDetection.imageRun img detected;
-
-            (* Displaying *)
-            show img       display; wait_key();
-            show denoised  display; wait_key();
-            show binarized display; wait_key();
-            show rotated   display; wait_key();
-            show detected  display; wait_key();
-
 
             exit 0
     end
