@@ -70,7 +70,7 @@ let train pre post (data : Network.dataset) network =
     try
         let epoch = ref 0 in
         let error = ref 1. in
-        while !error > 0.001 do
+        while !error > 0.0001 do
             pre !epoch;
             error := 0.;
             let length = ref 0. in
