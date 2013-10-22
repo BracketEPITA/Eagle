@@ -1,4 +1,6 @@
-open Math.Universe
+let (++)  = Math.Universe.(++)
+let (+.=) = Math.Universe.(+.=)
+let (/.=) = Math.Universe.(/.=)
 
 module ActivationFunction = struct
     type func = {
@@ -27,6 +29,18 @@ module ActivationFunction = struct
     }
 end
 
+type dataset = {
+    mutable inputs  : float array list;
+    mutable outputs : float array list;
+}
+
+let new_dataset () =
+    {inputs = []; outputs = []}
+
+let add_entry data inputs expected =
+    data.inputs <- inputs::data.inputs;
+    data.outputs <- expected::data.outputs
+
 type network_data = {
     layers  : float array array;
     weights : float array array;
@@ -45,7 +59,12 @@ class basic_network (data : network_data) =
         inherit network data
 
         val mutable training = (
-            fun x y z -> 0. : float array -> float array -> network -> float
+            fun 
+                (pre : (int -> unit))
+                (post : (int -> float -> unit))
+                (data : dataset)
+                (network : network) 
+            -> () 
         )
 
         method get_layer i = (
@@ -82,8 +101,12 @@ class basic_network (data : network_data) =
         method set_training_method train =
             training <- train
 
-        method train inputs outputs = (
-            training inputs outputs (this :> network)
+        method train 
+            ?pre:(pre=(fun epoch -> ())) 
+            ?post:(post=(fun epoch error -> ())) 
+            (data : dataset)
+        = (
+            training pre post data (this :> network)
         )
 
     end

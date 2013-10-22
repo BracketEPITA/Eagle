@@ -1,4 +1,6 @@
-open Math.Universe
+let (++)  = Math.Universe.(++)
+let (+.=) = Math.Universe.(+.=)
+let (/.=) = Math.Universe.(/.=)
 
 let epsilon = 1.
 
@@ -26,7 +28,7 @@ let rec propagate data index deltas =
         ignore ((++) delta_index);
         for j = 0 to Array.length inputs - 2 do
             weights.(!w) <- weights.(!w) -. delta *. inputs.(j) *. epsilon;
-            ignore (Math.Universe.(++) w)
+            ignore ((++) w)
         done;
     done;
     if index > 1 then propagate data (index - 1) deltas
@@ -52,15 +54,40 @@ let propagate_outputs data index expected =
     done;
     propagate data (index - 1) deltas
 
-let train inputs outputs network =
-    let o = network#set_values inputs in
+let train_entry inputs outputs network =
+    ignore (network#set_values inputs);
     let data = network#get_data in
     let i = Array.length data.Network.layers - 1 in
-    propagate_outputs data i outputs;
     let global_error = ref 0. in
+    propagate_outputs data i outputs;
     Array.iteri (fun j output ->
         let delta = output -. data.Network.layers.(i).(j) in
         ignore (global_error +.= (delta *. delta))
     ) outputs;
     !global_error /. float_of_int (Array.length data.Network.layers.(i))
+
+let train pre post (data : Network.dataset) network =
+    try
+        let epoch = ref 0 in
+        let error = ref 1. in
+        while !error > 0.001 do
+            pre !epoch;
+            error := 0.;
+            let length = ref 0. in
+            let rec f input output = (
+                match (input, output) with
+                    | (e1::l1, e2::l2) -> (
+                        f l1 l2;
+                        ignore (error +.= train_entry e1 e2 network);
+                        ignore (length +.= 1.);
+                    )
+                    | ([], [])         -> ()
+                    | _ -> failwith "inputs and outputs are not in pairs."
+            ) in 
+            f data.Network.inputs data.Network.outputs;
+            ignore (error /.= !length);
+            post !epoch !error;
+            ignore ((++) epoch);
+        done;
+    with _ -> failwith "Failed to train network using the dataset."
 

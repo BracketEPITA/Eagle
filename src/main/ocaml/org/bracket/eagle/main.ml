@@ -16,10 +16,36 @@ let show img dst =
 let get_dims img =
     ((Sdlvideo.surface_info img).Sdlvideo.w, (Sdlvideo.surface_info img).Sdlvideo.h)
 
-
-
 let main () =
     begin
+        let builder = new NetworkFactory.factory in
+            builder#add_layer {
+                NetworkFactory.size = 2; 
+                NetworkFactory.has_bias = true; 
+                NetworkFactory.activation = Network.ActivationFunction.sigmoid
+            };
+            builder#add_layer {
+                NetworkFactory.size = 3;
+                NetworkFactory.has_bias = true;
+                NetworkFactory.activation = Network.ActivationFunction.sigmoid
+            };
+            builder#add_layer {
+                NetworkFactory.size = 1;
+                NetworkFactory.has_bias = false;
+                NetworkFactory.activation = Network.ActivationFunction.sigmoid
+            };
+        let data = Network.new_dataset () in
+            Network.add_entry data [|0.; 0.|] [|0.|];
+            Network.add_entry data [|1.; 0.|] [|1.|];
+            Network.add_entry data [|0.; 1.|] [|1.|];
+            Network.add_entry data [|1.; 1.|] [|0.|];
+        let network = builder#build in
+            network#set_training_method (BackPropagation.train);
+            network#train ~post:(fun i error ->
+                Printf.printf "epoch %d : error = %f\n" i error;
+            ) data;
+
+
         if Array.length (Sys.argv) < 2 then
             failwith "Il manque le nom du fichier!";
         sdl_init ();
