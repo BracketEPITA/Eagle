@@ -44,7 +44,7 @@ class factory =
                     | [] -> failwith "Not enough activation functions"
             ) in
             
-            print_string "layers\n";
+            (*print_string "layers\n";
             Array.iter (fun a -> 
                 Array.iter (fun e -> Printf.printf "%f " e) a;
                 print_newline();
@@ -55,6 +55,7 @@ class factory =
                 print_newline();
             ) weights; print_newline();
             Printf.printf "%d\n" (Array.length activations);
+            *)
 
             new Network.basic_network {
                 Network.layers = out_layers;

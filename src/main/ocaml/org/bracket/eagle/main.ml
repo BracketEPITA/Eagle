@@ -85,26 +85,39 @@ let main () =
                 match words.(0) with
                     | "bin" -> (
                         argCheck 3 words;
-                        apply words.(1) words.(2) Binarisation.binarisation
+                        apply 
+                            words.(1) 
+                            words.(2) 
+                            (fun img src ->
+                                let threshold = if Array.length words >= 4 then
+                                    float_of_string words.(3)
+                                else 
+                                    Binarisation.get_global_threshold img
+                                in
+                                Binarisation.binarize img src threshold
+                            )
                     )
-                    | "bint" -> ()
                     | "nred" -> (
                         argCheck 3 words;
-                        let radius = if 
-                            Array.length words >= 4
-                        then 
-                               int_of_string
-                        words.(3) else 1 in
-                        apply words.(1) words.(2) (fun img dst ->
-                            NoiseReduction.median img dst radius)
+                        let radius = if Array.length words >= 4 then 
+                            int_of_string words.(3)
+                        else 
+                            1 
+                        in
+                        apply 
+                            words.(1)
+                            words.(2) 
+                            (fun img dst ->
+                                NoiseReduction.median img dst radius
+                            )
                     )
-                    | "hough" -> (
+                    | "ang" -> (
                                 argCheck 2 words;
                                 let img = Sdlloader.load_image words.(1) in
                                 let angle = Hough.hough img in
                                 Printf.printf "Hough angle is %f\n" (-.angle +.
                                 0.5)
-                            )
+                    )
                     | "rot" -> (
                         argCheck 4 words;
                         let img = Sdlloader.load_image words.(1) in
@@ -115,24 +128,21 @@ let main () =
                         in show dst display;
                         wait_key ();
                     )
-                    | "char" -> (
+                    | "cdet" -> (
                         argCheck 3 words;
-                        apply
-                            words.(1) 
-                            words.(2) 
-                            CharacterDetection.imageRun
-                    )
-                    | "oldChar" -> (
-                        argCheck 3 words;
+                        let w = Array.length words in
                         apply 
                             words.(1) 
                             words.(2) 
-                            CharacterDetection.oldImageRun
+                            (if w >= 4 && words.(3) = "legacy" then 
+                                CharacterDetection.oldImageRun
+                            else
+                                CharacterDetection.imageRun)
                     )
-                    | "restnw" -> (
+                    | "mknw" -> (
                         network := builder#build
                     )
-                    | "tranw" -> (
+                    | "trnw" -> (
                         (!network)#set_training_method (BackPropagation.train);
                         (!network)#train ~post:(fun i error ->
                             Printf.printf "epoch %d : error = %f\n" i error;
@@ -154,7 +164,24 @@ let main () =
                     | "exit" -> (
                         exitShell := true
                     )
-                    | _     -> Printf.printf "Unknown command \n" 
+                    | "help" -> (
+                        print_string (
+                            "help\n" ^
+                            "exit\n" ^
+                            "image :\n" ^
+                            "    bin <img> <dst> [threshold:auto]\n" ^
+                            "    nred <img> <dst> [radius:1]\n" ^
+                            "    ang <img> <dst>\n" ^
+                            "    rot <img> <dst> <angle>\n" ^
+                            "    cdet <img> <dst> [legacy]\n" ^
+                            "network :\n" ^
+                            "    mknw\n" ^
+                            "    trwn\n" ^
+                            "    setv <val1> <val2>\n"
+                        );
+
+                    )
+                    | _ -> Printf.printf "Unknown command \n" 
             with 
             | Invalid_argument s -> Printf.printf "%s\n" s);
             Sdl.quit ();
