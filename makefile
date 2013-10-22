@@ -16,5 +16,10 @@ eagle:: clean
 	$(OCAML) $(OCOPT) $(DIR)main.native
 	cp -f $(TARGET_DIR)build/$(DIR)main.native $(TARGET_DIR)
 
+debug:: clean
+	$(OCAML) $(OCOPT) -tag debug $(DIR)main.byte
+	cp -f $(TARGET_DIR)build/$(DIR)main.byte $(TARGET_DIR)
+	ocamldebug $(TARGET_DIR)main.byte
+
 clean:
 	$(OCAML) $(OCOPT) -clean
