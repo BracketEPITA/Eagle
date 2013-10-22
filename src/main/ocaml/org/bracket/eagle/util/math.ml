@@ -25,10 +25,8 @@ module Universe = struct
     let (  -- ) = (~--)
 end
 
-let iof x = int_of_float x
-let foi x = float_of_int x
-
-let soi x = string_of_int x
-let ios x = int_of_string x
-
-
+module Geometry = struct
+    let pi = 4.0 *. atan 1.0
+    let half_pi = 2.0 *. atan 1.0
+    let quarter_pi = 2.0 *. atan 1.0
+end
