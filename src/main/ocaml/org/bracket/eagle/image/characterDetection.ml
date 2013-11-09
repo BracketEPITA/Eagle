@@ -19,71 +19,47 @@ let show img dst =
     Sdlvideo.flip dst
 
 
+let drawRectangle img (x0, xMax, y0, yMax) = 
+    for y = y0 to yMax do
+        for x = x0 to xMax do
+            if x = xMax || y = yMax || x = x0 || y = y0 then
+                Sdlvideo.put_pixel_color img x y (255, 0, 0)
+        done
+    done
 
-let oldPropagate img x y m =
-    let xMin = ref x in
-    let yMin = ref y in
-    let xMax = ref x in
-    let yMax = ref y in
-    let rec propagate_rec x y =
-        if not(x < 0 || x >= Array.length m || y < 0 || y >= Array.length m.(x)) then
-            if not(m.(x).(y) || Sdlvideo.get_pixel_color img x y <> (0, 0, 0))
-            then (
-                m.(x).(y) <- true;
-                xMin := min (!xMin) x;
-                yMin := min (!yMin) y;
-                xMax := max (!xMax) x;
-                yMax := max (!yMax) y;
-            
-                propagate_rec (x + 1) y; 
-                propagate_rec (x - 1) y;
-                propagate_rec x (y + 1);
-                propagate_rec x (y - 1);
-                propagate_rec (x + 1) (y - 1);
-                propagate_rec (x - 1) (y - 1);
-                propagate_rec (x + 1) (y + 1);
-                propagate_rec (x - 1) (y + 1);
-            )
-    in (propagate_rec x y);
-    (!xMin, !yMin, !xMax, !yMax)
-                            
-let propagate img x y averageExp m =
-    let xMin = ref x in
-    let yMin = ref y in
-    let xMax = ref x in
-    let yMax = ref y in
 
-    let rec propagate_rec x y =
-        if not(x < 0 || x >= Array.length m || y < 0 || y >= Array.length m.(x)) then
-            if not(m.(x).(y) || Sdlvideo.get_pixel_color img x y <> (0, 0, 0))
-            then (
-                m.(x).(y) <- true;
-                xMin := min (!xMin) x;
-                yMin := min (!yMin) y;
-                xMax := max (!xMax) x;
-                yMax := max (!yMax) y;
-                for i = y - max 1 averageExp to y + max 1 averageExp do
-                    propagate_rec x (i);
-                    propagate_rec (x + 1) (i);
-                    propagate_rec (x - 1) (i);
-                done;
-            )
-    in (propagate_rec x y);
-    (!xMin, !yMin, !xMax, !yMax)
 
-let rec drawRectangles img = function
-    |[] -> ()
-    |(xMin, yMin, xMax, yMax)::t -> (
-        for x = xMin to xMax do
-            Sdlvideo.put_pixel_color img x yMin (255, 0, 0);        
-            Sdlvideo.put_pixel_color img x yMax (255, 0, 0);
-        done;
-        for y = yMin to yMax do
-            Sdlvideo.put_pixel_color img xMin y (255, 0, 0);
-            Sdlvideo.put_pixel_color img xMax y (255, 0, 0);
-        done;
-        drawRectangles img t;
-    )
+let findAdjacent x y src dst imageArray yMini yMaxi = 
+    let (xMin, xMax, yMin, yMax) = (ref x, ref x, ref y, ref y) in
+    let (w, h) = get_dims src in 
+    let rec findAdjacentRec x y =
+        if x > 0 && x < w && y > 0 && y < h then
+            if Sdlvideo.get_pixel_color src x y = Sdlvideo.black then
+                if not(imageArray.(y).(x)) then 
+                    (
+                        imageArray.(y).(x) <- true;
+    
+                        xMin := min !xMin x;
+                        xMax := max !xMax x;
+
+                        yMin := min !yMin y;
+                        yMax := max !yMax y;
+
+                        for y = yMini to yMaxi do
+                            for x = x - 1 to x + 1 do
+                                findAdjacentRec x y
+                            done
+                        done
+                    )
+    in 
+    if Sdlvideo.get_pixel_color src x y = Sdlvideo.black then
+        (
+            findAdjacentRec x y;
+            drawRectangle dst (!xMin, !xMax, !yMin, !yMax)
+        )
+
+
+let put_pixel = Sdlvideo.put_pixel_color
 
 let mini lines y =
     let r = ref y in
@@ -99,10 +75,13 @@ let maxi lines y h =
     done;
     !r
 
+let getMinMax lines y h = (mini lines y, maxi lines y h)
+
 let drawLineAt img y w =
     for x = 0 to w - 1 do
         Sdlvideo.put_pixel_color img x y (0, 0, 255);
     done
+
 
 let makeLines img = 
     let prevLine    = ref false in
@@ -125,33 +104,38 @@ let makeLines img =
     done;
     lines
 
-let imageRun img dst = 
-    let (w, h) = get_dims img in
-    let m = Array.make_matrix w h false in
-    let lines = makeLines img in
-    let blocks = ref [] in
-    for x = 0 to w - 1 do
-        for y = 0 to h - 1 do
-            let (yMin, yMax) = ((mini lines y), (maxi lines y h)) in
-            let height = yMax - yMin in
-            let averageExploration = height * 30 /100 in
-            Sdlvideo.put_pixel_color dst x y (Sdlvideo.get_pixel_color img x y);
-            if not(m.(x).(y)) && Sdlvideo.get_pixel_color img x y = (0, 0, 0)  then
-                blocks := (propagate img x y averageExploration m)::(!blocks);
-        done;
-    done;
-    drawRectangles dst !blocks
 
-let oldImageRun img dst = 
-    let (w, h) = get_dims img in
-    let m = Array.make_matrix w h false in
-    let blocks = ref [] in
-    for x = 0 to w - 1 do
-        for y = 0 to h - 1 do
-            Sdlvideo.put_pixel_color dst x y (Sdlvideo.get_pixel_color img x y);
-            if not(m.(x).(y)) && Sdlvideo.get_pixel_color img x y = (0, 0, 0)  then
-                blocks := (oldPropagate img x y m)::(!blocks);
-        done;
-    done;
-    drawRectangles dst !blocks
+let imageRun src dst = 
+    let (w, h) = get_dims src in
+    let imageArray = Array.make_matrix h w false in
+    let lines = makeLines src in
+    for y = 0 to h - 1 do 
+        for x = 0 to w - 1 do
+            if Sdlvideo.get_pixel_color dst x y <> Sdlvideo.red then    
+                put_pixel dst x y (Sdlvideo.get_pixel_color src x y);
+                let (yMin, yMax) = getMinMax lines y h in 
+                if not imageArray.(y).(x) then
+                    findAdjacent x y src dst imageArray yMin yMax;
+        done
+    done
 
+let main () =
+    begin
+        if Array.length (Sys.argv) < 2 then
+            failwith "Il manque le nom du fichier!";
+        sdl_init ();
+        
+        let img = Sdlloader.load_image Sys.argv.(1) in
+        let (w,h) = get_dims img in
+        let display =
+            Sdlvideo.set_video_mode w h [`DOUBLEBUF] in
+            show img display;
+            wait_key ();
+            let dst = Sdlvideo.create_RGB_surface_format img [] w h in
+            imageRun img dst;
+            show dst display;
+            wait_key ();
+            exit 0
+    end
+       
+let _ = main ()
