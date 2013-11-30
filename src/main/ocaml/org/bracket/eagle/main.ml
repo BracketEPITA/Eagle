@@ -142,7 +142,7 @@ let main () =
                     | "trnw" -> (
                         (!network)#set_training_method (BackPropagation.train);
                         (!network)#train ~post:(fun i error ->
-                            Printf.printf "epoch %d : error = %f\n" i error;
+                            if i mod 1000 = 0 then Printf.printf "epoch %d : error = %f\n" i error;
                         ) data;
                     )
                     | "setv" -> (
@@ -173,7 +173,7 @@ let main () =
                             "    cdet <img> <dst> [legacy]\n" ^
                             "network :\n" ^
                             "    mknw\n" ^
-                            "    trwn\n" ^
+                            "    trnw\n" ^
                             "    setv <val1> <val2>\n"
                         );
 
