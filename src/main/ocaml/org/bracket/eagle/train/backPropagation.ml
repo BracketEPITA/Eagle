@@ -3,8 +3,11 @@ let (+.=) = Math.Universe.(+.=)
 let (/.=) = Math.Universe.(/.=)
 
 let epsilon = 1.
+let epoch   = ref 0
+let error   = ref 1.
+let threshold = 0.001
 
-let rec propagate data deltas index miniGrads (update: bool) = 
+let rec propagate data deltas index miniGrads (update: bool) prevGrads epsilons = 
     let outputs      = data.Network.layers.     (index)                 in
     let inputs       = data.Network.layers.     (index - 1)             in
     let successors   = data.Network.layers.     (index + 1)             in
@@ -25,13 +28,24 @@ let rec propagate data deltas index miniGrads (update: bool) =
         deltas.(i) <- delta;
 
         for j = 0 to Array.length inputs - 2 do
-            miniGrads.(index - 1).(j) <- miniGrads.(index - 1).(j) +. delta *. inputs.(j) *. epsilon;
-            if update then weights.(j) <- weights.(j) -. miniGrads.(index - 1).(j);
+            miniGrads.(index - 1).(j) <- miniGrads.(index - 1).(j) +. delta *. inputs.(j);
+            if update then 
+                (
+                    if miniGrads.(index - 1).(j) *. prevGrads.(index - 1).(j) >= 0. then
+                        epsilons.(index - 1).(j) <- max (epsilons.(index - 1).(j) +. 1.) 100.
+                    else
+                        epsilons.(index - 1).(j) <- min (epsilons.(index - 1).(j) *. 0.75) 0.000001;
+
+                    if !error < 10. *. threshold then
+                        epsilons.(index - 1).(j) <- 1.;
+                    weights.(j) <- weights.(j) -. miniGrads.(index - 1).(j) *. epsilons.(index - 1).(j);
+
+                )
         done;
     done;
-    if index > 1 then propagate data deltas (index - 1) miniGrads update
+    if index > 1 then propagate data deltas (index - 1) miniGrads update prevGrads epsilons
 
-let backpropagation data index expected miniGrads (update: bool) =
+let backpropagation data index expected miniGrads (update: bool) prevGrads epsilons =
     let outputs     = data.Network.layers.     (index)                 in
     let inputs      = data.Network.layers.     (index - 1)             in
     let weights     = data.Network.weights.    (index - 1)             in
@@ -46,30 +60,40 @@ let backpropagation data index expected miniGrads (update: bool) =
         
         for j = 0
          to Array.length inputs - 2 do
-            miniGrads.(index - 1).(j) <- miniGrads.(index - 1).(j) +. delta *. inputs.(j) *. epsilon;
-            if update then weights.(j) <- weights.(j) -. miniGrads.(index - 1).(j);
+            miniGrads.(index - 1).(j) <- miniGrads.(index - 1).(j) +. delta *. inputs.(j);
+            if update then 
+                (
+                    if miniGrads.(index - 1).(j) *. prevGrads.(index - 1).(j) >= 0. then
+                        epsilons.(index - 1).(j) <- max (epsilons.(index - 1).(j) +. 1.) 100.
+                    else
+                        epsilons.(index - 1).(j) <- min (epsilons.(index - 1).(j) *. 0.75) 0.000001;
+                    if !error < 10. *. threshold then
+                        epsilons.(index - 1).(j) <- 1.;
+                    weights.(j) <- weights.(j) -. miniGrads.(index - 1).(j) *. epsilons.(index - 1).(j);
+
+                )
         done;
     done;
 
-    propagate data deltas (index - 1) miniGrads update
+    propagate data deltas (index - 1) miniGrads update prevGrads epsilons
 
 
-let train_entry (inputs, outputs) network miniGrads (update : bool) =
+let train_entry (inputs, outputs) network miniGrads (update : bool) prevGrads epsilons =
     ignore(network#set_values inputs);
     let data        = network#get_data                                  in
     let index       = Array.length data.Network.layers - 1              in
 
-    backpropagation data index outputs miniGrads update
+    backpropagation data index outputs miniGrads update prevGrads epsilons
 
-let rec train_batch batch network miniGrads =
+let rec train_batch batch network miniGrads prevGrads epsilons =
     if Array.length batch = 1 then 
-        train_entry batch.(0) network miniGrads true
+        train_entry batch.(0) network miniGrads true prevGrads epsilons
     else
         if Array.length batch != 0 then
             for i = 0 to (Array.length batch - 2) do
-                train_entry batch.(i) network miniGrads false
+                train_entry batch.(i) network miniGrads false prevGrads epsilons
             done;
-            train_entry batch.(Array.length batch - 1) network miniGrads true
+            train_entry batch.(Array.length batch - 1) network miniGrads true prevGrads epsilons
 
 let getError (inputs, outputs) network = 
     ignore(network#set_values inputs);
@@ -91,10 +115,10 @@ let length (l1, l2) =
         | _ -> failwith "inputs and outputs are not in pairs."
     in lengthRec 0 (l1, l2)
 
-
+ 
 let train pre post (data : Network.dataset) network =
-        let epoch   = ref 0                 in
-        let error   = ref 1.                in
+        epoch   := 0 ;
+        error   := 1.;
 
         let inputs  = data.Network.inputs   in
         let outputs = data.Network.outputs  in
@@ -111,13 +135,31 @@ let train pre post (data : Network.dataset) network =
             | _ -> failwith "inputs and outputs are not in pairs."
         in makeDataSet 0 (inputs, outputs);
 
-        while !error > 0.001 do
+        let epsilons = Array.init (Array.length datas.Network.weights) (fun i -> 
+            Array.make (Array.length datas.Network.weights.(i)) 1.
+        ) in
+
+        let miniGrads = Array.init (Array.length datas.Network.weights) (fun i -> 
+            Array.make (Array.length datas.Network.weights.(i)) 0.
+        ) in
+        let prevGrads = Array.init (Array.length datas.Network.weights) (fun i -> 
+            Array.make (Array.length datas.Network.weights.(i)) 0.
+        ) in
+        Random.self_init ();
+
+
+        while !error > threshold do
         
             (* Init *)
             error := 0.;
-            let miniGrads = Array.init (Array.length datas.Network.weights) (fun i -> 
-                Array.make (Array.length datas.Network.weights.(i)) 0.
-            ) in
+
+            for i = 0 to (Array.length datas.Network.weights - 1) do
+                for j = 0 to (Array.length miniGrads.(i) - 1) do
+                    prevGrads.(i).(j) <- miniGrads.(i).(j);
+                    miniGrads.(i).(j) <- 0.;
+                done;
+            done;
+            
 
             (* Shuffling the dataset using Fisher–Yates shuffle *)
             for i = (Array.length dataset - 1) downto 0 do
@@ -130,7 +172,8 @@ let train pre post (data : Network.dataset) network =
 
             pre !epoch;
 
-            train_batch dataset network miniGrads;
+            train_batch dataset network miniGrads prevGrads epsilons;
+            
 
             for i = 0 to (Array.length dataset - 1) do
                 ignore (error  +.= getError dataset.(i) network);
