@@ -32,10 +32,11 @@ end
 type dataset = {
     mutable inputs  : float array list;
     mutable outputs : float array list;
+    mutable size    : int;
 }
 
 let new_dataset () =
-    {inputs = []; outputs = []}
+    {inputs = []; outputs = []; size = 0}
 
 let add_entry data inputs expected =
     data.inputs <- inputs::data.inputs;
@@ -44,6 +45,7 @@ let add_entry data inputs expected =
 type network_data = {
     layers  : float array array;
     weights : float array array;
+    biases  : float array array;
     activations : ActivationFunction.func array;
 }
 
@@ -78,8 +80,7 @@ class basic_network (data : network_data) =
                 let weights = data.weights.(index - 1) in
                 let activation = data.activations.(index - 1) in
                 let w = ref 0 in
-                let last_layer = index = Array.length data.layers - 1 in
-                let l = Array.length layer - if last_layer then 1 else 2 in
+                let l = Array.length layer - 1 in
                 for i = 0 to l do
                     let sum = ref 0. in
                     Array.iter (fun prev -> 
@@ -110,32 +111,3 @@ class basic_network (data : network_data) =
         )
 
     end
-
-let new_network () =
-    Random.self_init ();
-    let l = Array.length in
-    let layers = [|
-        Array.make 50 0.;
-        Array.make 10 0.;
-        Array.make 4 0.
-    |] in
-    for i = 0 to l layers - 2 do
-        layers.(i).(l layers.(i) - 1) <- 1.;
-    done;
-    let weights = Array.init (l layers - 1) (fun i -> 
-        let l1 = l layers.(i) and l2 = l layers.(i + 1) in
-        let s = l1 * (l2 + if i = l layers - 2 then 0 else -1) in
-        Array.init s (fun j ->
-            Random.float 1.
-        )
-    ) in
-    let activations = [|
-        ActivationFunction.sigmoid;
-        ActivationFunction.sigmoid
-    |] in
-    let data = {
-        layers = layers; 
-        weights = weights; 
-        activations = activations
-    } in
-        new basic_network data;
