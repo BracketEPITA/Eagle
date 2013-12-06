@@ -30,3 +30,12 @@ module Geometry = struct
     let half_pi = 2.0 *. atan 1.0
     let quarter_pi = 2.0 *. atan 1.0
 end
+
+let int o =
+    match Obj.tag (Obj.repr o) with
+     | x when x = Obj.double_tag -> int_of_float (Obj.magic o)
+     | _ -> Obj.magic o
+
+let float o = (Obj.magic o : float)
+
+let bool o = Obj.magic o = 1
