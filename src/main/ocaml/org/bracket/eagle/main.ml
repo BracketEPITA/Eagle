@@ -16,6 +16,8 @@ let show img dst =
 let get_dims img =
     ((Sdlvideo.surface_info img).Sdlvideo.w, (Sdlvideo.surface_info img).Sdlvideo.h)
 
+let ios x = int_of_string x
+
 let matrixLength str = 
     let l = ref 1 in
     for i = 0 to (String.length str) - 1 do
@@ -128,16 +130,11 @@ let main () =
                         in show dst display;
                         wait_key ();
                     )
-                    | "cdet" -> (
-                        argCheck 3 words;
-                        let w = Array.length words in
-                        apply 
-                            words.(1) 
-                            words.(2) 
-                            (if w >= 4 && words.(3) = "legacy" then 
-                                CharacterDetection.oldImageRun
-                            else
-                                CharacterDetection.imageRun)
+                    | "det" -> (
+                        argCheck 7 words;
+                        apply words.(1) words.(2) 
+                                (CharacterDetection.detect (ios words.(3), ios
+                                words.(4), ios words.(5), ios words.(6)))
                     )
                     | "mknw" -> (
                         network := builder#build
@@ -145,7 +142,7 @@ let main () =
                     | "trnw" -> (
                         (!network)#set_training_method (BackPropagation.train);
                         (!network)#train ~post:(fun i error ->
-                            Printf.printf "epoch %d : error = %f\n" i error;
+                            if i mod 1000 = 0 then Printf.printf "epoch %d : error = %f\n" i error;
                         ) data;
                     )
                     | "setv" -> (
@@ -176,7 +173,7 @@ let main () =
                             "    cdet <img> <dst> [legacy]\n" ^
                             "network :\n" ^
                             "    mknw\n" ^
-                            "    trwn\n" ^
+                            "    trnw\n" ^
                             "    setv <val1> <val2>\n"
                         );
 
