@@ -99,6 +99,22 @@ let main () =
                                 Binarisation.binarize img src threshold
                             )
                     )
+                    | "lbin" -> (
+                        argCheck 2 words;
+                        apply 
+                            words.(1) words.(2) Binarisation.localBinarize
+
+                    )
+                    | "sbin" -> (
+                        argCheck 2 words;
+                        apply 
+                            words.(1) words.(2) 
+                            (fun img src ->
+                                Binarisation.naiveSauvola img src 0.05
+                            )
+
+                    )
+
                     | "nred" -> (
                         argCheck 3 words;
                         let radius = if Array.length words >= 4 then 
@@ -113,6 +129,12 @@ let main () =
                                 NoiseReduction.median img dst radius
                             )
                     )
+                    | "angle" ->
+                        argCheck 2 words;
+                                let img = Sdlloader.load_image words.(1) in
+                                let angle = Newhough.hough img in
+                                Printf.printf "Hough angle is %f\n" (angle)
+
                     | "ang" -> (
                                 argCheck 2 words;
                                 let img = Sdlloader.load_image words.(1) in
@@ -123,11 +145,12 @@ let main () =
                     | "rot" -> (
                         argCheck 4 words;
                         let img = Sdlloader.load_image words.(1) in
-                        let dst = Rotation.rotation img (float_of_string
+                        let dst = Rotation.rotate img (float_of_string
                         words.(3)) in 
                         let (w, h) = get_dims dst in
                         let display = Sdlvideo.set_video_mode w h [`DOUBLEBUF]
                         in show dst display;
+                        Sdlvideo.save_BMP dst words.(2);
                         wait_key ();
                     )
                     | "det" -> (
