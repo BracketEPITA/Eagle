@@ -125,6 +125,26 @@ let main () =
 
                     )
 
+                    | "scale" -> (
+                        argCheck 2 words;
+                        
+                        let img = Sdlloader.load_image words.(1) in
+                        let dst = Resize.resize img (500, 500) in
+
+                        let (w, h)      = get_dims img in
+                        let disp = Sdlvideo.set_video_mode w h [`DOUBLEBUF] in     
+                        show img disp;
+                        wait_key ();
+
+                        
+                        let (w, h)      = get_dims dst in
+                        let disp = Sdlvideo.set_video_mode w h [`DOUBLEBUF] in
+                        show dst disp;
+                        wait_key ();
+
+                        Sdlvideo.save_BMP dst words.(2)
+                    )
+
                     | "nred" -> (
                         argCheck 3 words;
                         let radius = if Array.length words >= 4 then 
