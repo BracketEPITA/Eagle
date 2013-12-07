@@ -10,11 +10,13 @@ let int = int_of_float
 let half (x,y) = (x / 2, y / 2)
 
 let rotate theta0 img =
-    let theta = mod_float theta0 half_pi in
+    let theta = mod_float (theta0 +. half_pi) half_pi in
     let (w0,h0) = SDLUtils.get_dims img in
     let (w,h) = (
-        int ((float h0 *. sin theta) +. (float w0 *. cos theta)), 
-        int ((float h0 *. cos theta) +. (float w0 *. sin theta))
+        int ((float h0 *. abs_float (sin theta)) 
+          +. (float w0 *. abs_float (cos theta))), 
+        int ((float h0 *. abs_float (cos theta)) 
+          +. (float w0 *. abs_float (sin theta)))
     ) in
     let (cx0,cy0) = half (w0,h0) in
     let (cx, cy)  = half (w,h) in
