@@ -63,7 +63,7 @@ let main () =
                 NetworkFactory.activation = Network.ActivationFunction.sigmoid
             };
             builder#add_layer {
-                NetworkFactory.size = 3;
+                NetworkFactory.size = 4000;
                 NetworkFactory.has_bias = true;
                 NetworkFactory.activation = Network.ActivationFunction.sigmoid
             };
@@ -73,10 +73,10 @@ let main () =
                 NetworkFactory.activation = Network.ActivationFunction.sigmoid
             };
         let data = Network.new_dataset () in
-            Network.add_entry data [|0.; 0.|] [|0.|];
-            Network.add_entry data [|1.; 0.|] [|1.|];
-            Network.add_entry data [|0.; 1.|] [|1.|];
-            Network.add_entry data [|1.; 1.|] [|0.|];
+            Network.add_entry data [|-1.; -1.|] [|0.|];
+            Network.add_entry data [|1.; -1.|]  [|1.|];
+            Network.add_entry data [|-1.; 1.|]  [|1.|];
+            Network.add_entry data [|1.; 1.|]   [|0.|];
         let network = ref builder#build in
         while not !exitShell do
             sdl_init ();
@@ -115,6 +115,16 @@ let main () =
 
                     )
 
+                    | "abin" -> (
+                        argCheck 2 words;
+                        apply 
+                            words.(1) words.(2) 
+                            (fun img src ->
+                                Binarisation.abin img src
+                            )
+
+                    )
+
                     | "nred" -> (
                         argCheck 3 words;
                         let radius = if Array.length words >= 4 then 
@@ -145,8 +155,8 @@ let main () =
                     | "rot" -> (
                         argCheck 4 words;
                         let img = Sdlloader.load_image words.(1) in
-                        let dst = Rotation.rotate img (float_of_string
-                        words.(3)) in 
+                        let dst = Rotation.rotate (float_of_string
+                        words.(3)) img in 
                         let (w, h) = get_dims dst in
                         let display = Sdlvideo.set_video_mode w h [`DOUBLEBUF]
                         in show dst display;
@@ -165,7 +175,7 @@ let main () =
                     | "trnw" -> (
                         (!network)#set_training_method (BackPropagation.train);
                         (!network)#train ~post:(fun i error ->
-                            if i mod 1000 = 0 then Printf.printf "epoch %d : error = %f\n" i error;
+                            if i mod 100 = 0 then Printf.printf "epoch %d : error = %f\n" i error;
                         ) data;
                     )
                     | "setv" -> (
