@@ -12,8 +12,6 @@ class factory =
             layers <- layer::layers;
 
         method build = (
-            Random.self_init ();
-
             let l = List.length in
             let length = l layers in
             let out_layers = Array.make length [||] in
@@ -22,24 +20,21 @@ class factory =
             let layer_activation = ref [] in
             let rec build_layers l0 i = match l0 with
                 | e::li -> (
-                        layer_bias .(length - i - 1) <- e.has_bias;
-                        out_layers .(length - i - 1) <- Array.make e.size 0.;
-                        layer_sizes.(length - i - 1) <- e.size;
+                        let size = e.size + if e.has_bias then 1 else 0 in
+                        let layer = Array.make size 0. in
+                        layer_bias.(length - i - 1) <- e.has_bias;
+                        if e.has_bias then layer.(size - 1) <- 1.;
+                        out_layers.(length - i - 1) <- layer;
+                        layer_sizes.(length - i - 1) <- size;
                         layer_activation:=(e.activation)::(!layer_activation);
                         build_layers li (i + 1)
                     )
                 | _    -> ()
             in build_layers layers 0;
-            let biases = Array.init (length - 1) (fun i ->
-                if layer_bias.(i) then
-                    Array.init layer_sizes.(i) (fun i -> 
-                        Random.float 1.
-                    )
-                else [||]
-            ) in
             let weights = Array.init (length - 1) (fun i ->
                 let l1 = layer_sizes.(i) and l2 = layer_sizes.(i + 1) in
-                Array.init (l1 * l2) (fun j ->
+                let s = l1 * (l2 - if layer_bias.(i + 1) then 1 else 0) in
+                Array.init s (fun j ->
                     Random.float 1.
                 )
             ) in
@@ -65,7 +60,6 @@ class factory =
             new Network.basic_network {
                 Network.layers = out_layers;
                 Network.weights = weights;
-                Network.biases = biases;
                 Network.activations = activations;
             }
 
