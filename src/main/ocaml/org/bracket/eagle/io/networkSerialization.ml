@@ -1,10 +1,27 @@
 let serialize path network = Network.(
     let out = open_out_bin path in
     let data = network#get_data in 
-    Marshal.in_channel out data.layers;
-    Marshal.in_channel out data.weights;
+    Marshal.to_channel out data.layers [];
+    Marshal.to_channel out data.weights [];
     let activations = Array.init (Array.length data.activations) (fun i ->
-        data.activations.(i).name
+        data.activations.(i).ActivationFunction.name
     ) in
-    Marshal.in_channel out activations;
+    Marshal.to_channel out activations [];
+    close_out out;
+)
+
+let deserialize path = Network.(
+    let input = open_in_bin path in
+    let layers  = (Marshal.from_channel input : float array array) in
+    let weights = (Marshal.from_channel input : float array array) in
+    let raw_activations = (Marshal.from_channel input : string array) in
+    let activations = Array.init (Array.length raw_activations) (fun i ->
+        ActivationFunction.get raw_activations.(i)
+    ) in
+    close_in input;
+    new basic_network {
+        layers  = layers;
+        weights = weights;
+        activations = activations;
+    }
 )
