@@ -14,9 +14,9 @@ yMax) =
                         localYMin := min !localYMin y;
                         localYMax := max !localYMax y;
 
-                        let average20 = (yMaxi - yMini) / 5  in
-                        for y = y - average20  to y + average20 do
-                            for x = x - 1 to x + 1 do
+                        let average20 = (yMaxi - yMini) / 2  in
+                        for y = max (y - average20) yMini  to min (y + average20) yMaxi do
+                            for x = x - 2 to x + 2 do
                                 findAdjacentRec x y
                             done
                         done
