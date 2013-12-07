@@ -7,6 +7,7 @@ let serialize path network = Network.(
         data.activations.(i).ActivationFunction.name
     ) in
     Marshal.to_channel out activations [];
+    close_out out;
 )
 
 let deserialize path = Network.(
@@ -17,6 +18,7 @@ let deserialize path = Network.(
     let activations = Array.init (Array.length raw_activations) (fun i ->
         ActivationFunction.get raw_activations.(i)
     ) in
+    close_in input;
     new basic_network {
         layers  = layers;
         weights = weights;
