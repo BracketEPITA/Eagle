@@ -1,4 +1,3 @@
-
 let get_dims img =
   ((Sdlvideo.surface_info img).Sdlvideo.w, (Sdlvideo.surface_info img).Sdlvideo.h)
  
@@ -42,3 +41,8 @@ let drawLineAt img y w color =
     for x = 0 to w - 1 do
         Sdlvideo.put_pixel_color img x y color;
     done
+
+let drawEdgeAt img x h color =
+  for y = 0 to h - 1 do
+    Sdlvideo.put_pixel_color img x y color;
+  done
