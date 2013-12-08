@@ -46,3 +46,5 @@ let drawEdgeAt img x h color =
   for y = 0 to h - 1 do
     Sdlvideo.put_pixel_color img x y color;
   done
+
+let get_dims_matrix matrix = (Array.length matrix.(0), Array.length)
