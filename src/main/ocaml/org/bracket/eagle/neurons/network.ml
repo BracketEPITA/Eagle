@@ -32,6 +32,8 @@ module ActivationFunction = struct
     let tanh    = get "tanh"
 end
 
+let input_size = 10
+
 type dataset = {
     mutable inputs  : float array list;
     mutable outputs : float array list;

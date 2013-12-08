@@ -22,12 +22,12 @@ let rec propagate data deltas index miniGrads (update: bool) prevGrads epsilons 
     ) successors;
     
     let deltas = Array.make (Array.length succ_weights) 0. in
-    for i = 0 to Array.length outputs - 2 do
+    for i = 0 to Array.length outputs - 1 do
 
         let delta = diff outputs.(i) *. !sum in
         deltas.(i) <- delta;
 
-        for j = 0 to Array.length inputs - 2 do
+        for j = 0 to Array.length inputs - 1 do
             miniGrads.(index - 1).(j) <- miniGrads.(index - 1).(j) +. delta *. inputs.(j);
             if update then 
                 (
@@ -59,7 +59,7 @@ let backpropagation data index expected miniGrads (update: bool) prevGrads epsil
         deltas.(i) <- delta;
         
         for j = 0
-         to Array.length inputs - 2 do
+         to Array.length inputs - 1 do
             miniGrads.(index - 1).(j) <- miniGrads.(index - 1).(j) +. delta *. inputs.(j);
             if update then 
                 (

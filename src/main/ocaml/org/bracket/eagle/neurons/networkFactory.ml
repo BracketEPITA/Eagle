@@ -5,11 +5,12 @@ type layer = {
 }
 
 class factory =
-    object
+    object (this)
         val mutable layers = ([] : layer list)
         
         method add_layer (layer : layer) =
             layers <- layer::layers;
+            this
 
         method build = (
             let l = List.length in
