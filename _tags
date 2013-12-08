@@ -3,6 +3,7 @@
 "src/main/ocaml/org/bracket/eagle/neurons": include
 "src/main/ocaml/org/bracket/eagle/train": include
 "src/main/ocaml/org/bracket/eagle/util": include
-<**/*.{byte,native}>: package(sdl), package(sdl.sdlimage)
-<**/*.ml>: package(sdl), package(sdl.sdlimage)
-<**/*.mli>: package(sdl), package(sdl.sdlimage)
+"src/main/ocaml/org/bracket/eagle/io": include
+<**/*.{byte,native}>: package(sdl), package(sdl.sdlimage), package(sdl.sdlttf)
+<**/*.ml>: package(sdl), package(sdl.sdlimage), package(sdl.sdlttf)
+<**/*.mli>: package(sdl), package(sdl.sdlimage), package(sdl.sdlttf)

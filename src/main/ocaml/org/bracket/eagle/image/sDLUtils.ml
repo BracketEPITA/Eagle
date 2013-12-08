@@ -7,14 +7,21 @@ let level (r,g,b) = (0.3*.float_of_int r +. 0.59*.float_of_int g
 let imageiter f img = let (w,h) = get_dims img in
     for j=0 to h-1 do
         for i=0 to w-1 do
-                f i j
+            f i j
         done
     done
 
+let fill img (x,y) (w,h) color =
+    for j = 0 to h - 1 do
+        for i = 0 to w - 1 do
+            Sdlvideo.put_pixel_color img i j color
+        done
+    done
 
 let sdl_init () =
     begin
         Sdl.init [`EVERYTHING];
+        Sdlttf.init ();
         Sdlevent.enable_events Sdlevent.all_events_mask;
     end
 
