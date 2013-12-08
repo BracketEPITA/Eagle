@@ -5,7 +5,7 @@ let (/.=) = Math.Universe.(/.=)
 let epsilon = 1.
 let epoch   = ref 0
 let error   = ref 1.
-let threshold = 0.001
+let threshold = 0.1
 
 let rec propagate data (deltas, deltasBias) index (miniGrads, miniBias) (update: bool) prevGrads epsilons = 
     let outputs      = data.Network.layers.     (index)                 in
@@ -199,8 +199,16 @@ let train pre post (data : Network.dataset) network =
 
             pre !epoch;
 
-            train_batch dataset network (miniGrads, miniBias) prevGrads epsilons;
-            
+            let split = 2 in
+            let size = (Array.length dataset / split) in
+            let sets = Array.init split (fun i ->
+                let l = i * size in
+                let u = min (l + size) (Array.length dataset - l) in
+                Array.sub dataset l u
+            ) in
+            Array.iter (fun dataset ->
+                train_batch dataset network (miniGrads, miniBias) prevGrads epsilons;
+            ) sets;
 
             for i = 0 to (Array.length dataset - 1) do
                 ignore (error  +.= getError dataset.(i) network);
