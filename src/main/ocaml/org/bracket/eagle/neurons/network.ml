@@ -32,8 +32,6 @@ module ActivationFunction = struct
     let tanh    = get "tanh"
 end
 
-let input_size = 10
-
 type dataset = {
     mutable inputs  : float array list;
     mutable outputs : float array list;
@@ -49,7 +47,6 @@ let add_entry data inputs expected =
 type network_data = {
     layers  : float array array;
     weights : float array array;
-    biases  : float array array;
     activations : ActivationFunction.func array;
 }
 
@@ -79,15 +76,18 @@ class basic_network (data : network_data) =
 
         method set_values inputs = (
             let compute_layer index = (
-                let layer      = data.layers.(index)            in
-                let previous   = data.layers.(index - 1)        in
-                let weights    = data.weights.(index - 1)       in
-                let biases     = data.biases.(index - 1)        in
-                let activation = data.activations.(index - 1)   in
-                for i = 0 to Array.length layer - 1 do
+                let layer = data.layers.(index) in
+                let previous = data.layers.(index - 1) in
+                let weights = data.weights.(index - 1) in
+                let activation = data.activations.(index - 1) in
+                let w = ref 0 in
+                let last_layer = index = Array.length data.layers - 1 in
+                let l = Array.length layer - if last_layer then 1 else 2 in
+                for i = 0 to l do
                     let sum = ref 0. in
-                    Array.iteri (fun w prev -> 
-                        sum := !sum +. weights.(w) *. prev +. biases.(w);
+                    Array.iter (fun prev -> 
+                        ignore (sum +.= (weights.(!w) *. prev));
+                        ignore ((++) w)
                     ) previous;
                     layer.(i) <- activation.ActivationFunction.f !sum;
                 done
