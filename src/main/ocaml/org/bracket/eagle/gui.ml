@@ -1,4 +1,6 @@
-                                (* Structure interface *)
+let network = ref (Obj.magic None)
+
+(* Structure interface *)
 let window =
   ignore (GMain.init ());
   let wnd = GWindow.window
@@ -158,7 +160,7 @@ let eagl_button =
     |None   -> ()
     in
   (*final text to display*)
-  let write ()= text#buffer#insert("jmlafraise")in
+  let write ()= text#buffer#insert("")in
   let erase ()=text2#buffer#delete
     ~start:text2#buffer#start_iter
     ~stop:text2#buffer#end_iter in
@@ -188,18 +190,28 @@ let eagl_button =
     erase();
     text2#buffer#insert("proceeding some smoothy rotation..." ^ string_of_float !angle);
     let img = Sdlloader.load_image !path in
-    let dst = Rotation.rotate !angle img in
-    Sdlvideo.save_BMP dst (!path);
-    List.iter result#remove result#children;
-    ignore (GMisc.image
-      ~file: (!path)
-      ~packing:result#add()
+    if (abs_float !angle > 0.02 && !angle >= 0.) then (
+        let dst = Rotation.rotate (!angle +. 0.01) img in
+        Sdlvideo.save_BMP dst (!path);
+        List.iter result#remove result#children;
+        ignore (GMisc.image
+            ~file: (!path)
+            ~packing:result#add()
+        )
     )
   in
 
   let write6 ()=
     erase();
-    text2#buffer#insert("proceeding some nice character detection...")in
+    text2#buffer#insert("proceeding some nice character detection...");
+    let img = Sdlloader.load_image !path in
+    let (w,h) = SDLUtils.get_dims img in
+    let dst = Sdlvideo.create_RGB_surface_format img [] w h in
+    let txt = CharacterDetection.detect (0, 0, w, h) img dst (!network) in
+    
+    text#buffer#delete;
+    text#buffer#insert txt
+  in
   let write7 ()=
     erase();
     text2#buffer#insert("proceeding some hot scaling...")in
@@ -215,8 +227,10 @@ let eagl_button =
     ~stop:text#buffer#end_iter;
     display();
     write3();(* binarisation here <<--- *)
-    write4();(* detection d'angle here <<--- *)
-    write5() in(* rotation here <<--- *)
+    (*write4();(* detection d'angle here <<--- *)
+    write5();*)
+    write6();
+    write9() in(* rotation here <<--- *)
     
   ignore(btn#connect#clicked ~callback:action);
   btn
@@ -291,6 +305,11 @@ let confirm _ =
   res
 
 let startInterface () =
+  network := NetworkSerialization.deserialize "network.bin";
+    let img = Sdlloader.load_image !path in
+    let (w,h) = SDLUtils.get_dims img in
+    let dst = Sdlvideo.create_RGB_surface_format img [] w h in
+    let txt = CharacterDetection.detect (0, 0, w, h) img dst (!network) in
   window#show ();
   ignore (window#event#connect#delete confirm);
   GMain.main ()

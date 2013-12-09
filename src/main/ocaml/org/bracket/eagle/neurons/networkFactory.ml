@@ -1,75 +1,42 @@
-type layer = {
-    size : int;
-    has_bias : bool;
-    activation : Network.ActivationFunction.func;
-}
+exception Wrong_init_sizes
 
 class factory =
-    object (this)
-        val mutable layers = ([] : layer list)
-        
-        method add_layer (layer : layer) =
-            layers <- layer::layers;
-            this
+    object (self)
+        val mutable range_w = 1.
+        val mutable range_b = 1.
+        val mutable layers  = ([] : int list)
 
-        method build = (
-            Random.self_init ();
+        method with_weights w = range_w <- w; self
+        method with_biases  b = range_b <- b; self
+        method add_layer l = layers <- l::layers; self
 
-            let l = List.length in
-            let length = l layers in
-            let out_layers = Array.make length [||] in
-            let layer_bias = Array.make length false in
-            let layer_sizes = Array.make length 0 in
-            let layer_activation = ref [] in
-            let rec build_layers l0 i = match l0 with
-                | e::li -> (
-                        layer_bias .(length - i - 1) <- e.has_bias;
-                        out_layers .(length - i - 1) <- Array.make e.size 0.;
-                        layer_sizes.(length - i - 1) <- e.size;
-                        layer_activation:=(e.activation)::(!layer_activation);
-                        build_layers li (i + 1)
-                    )
-                | _    -> ()
-            in build_layers layers 0;
-            let biases = Array.init (length - 1) (fun i ->
-                if layer_bias.(i) then
-                    Array.init layer_sizes.(i) (fun i -> 
-                        Random.float 1.
-                    )
-                else [||]
-            ) in
-            let weights = Array.init (length - 1) (fun i ->
-                let l1 = layer_sizes.(i) and l2 = layer_sizes.(i + 1) in
-                Array.init (l1 * l2) (fun j ->
-                    Random.float 1.
-                )
-            ) in
-            let activations = Array.init (length - 1) (fun i ->
-                match !layer_activation with
-                    | act::li -> layer_activation := li; act
-                    | [] -> failwith "Not enough activation functions"
-            ) in
-            
-            (*print_string "layers\n";
-            Array.iter (fun a -> 
-                Array.iter (fun e -> Printf.printf "%f " e) a;
-                print_newline();
-            ) out_layers; print_newline();
-            print_string "weights\n";
-            Array.iter (fun a -> 
-                Array.iter (fun e -> Printf.printf "%f " e) a;
-                print_newline();
-            ) weights; print_newline();
-            Printf.printf "%d\n" (Array.length activations);
-            *)
-
-            new Network.basic_network {
-                Network.layers = out_layers;
-                Network.weights = weights;
-                Network.biases = biases;
-                Network.activations = activations;
-            }
-
-        )
-
+        method build =
+            let layers_sizes = Array.of_list (List.rev layers) in
+            let input_size = layers_sizes.(0) in
+            let output_size = layers_sizes.(Array.length layers_sizes - 1) in
+	        Random.self_init ();
+	        let init_bias i =
+		        Random.float (2. *. range_b) -. range_b
+            in
+	        let layers_nb = Array.length layers_sizes in
+	        if layers_sizes.(layers_nb - 1) <> output_size then
+		        (raise Wrong_init_sizes);
+	        let init_weights i =
+		        let hidden_size = if i = 0 then 
+                        input_size 
+                    else 
+                        layers_sizes.(i-1)
+                in
+		        Matrix.random layers_sizes.(i) hidden_size range_w in
+            let init_bias i =
+		        Array.init layers_sizes.(i) init_bias
+            in
+	        let weights = Array.init layers_nb init_weights in
+	        let biases  = Array.init layers_nb init_bias    in
+	        Network.(new basic_network {
+                size_inputs  = input_size;
+                size_outputs = output_size;
+                init_weights = weights; 
+                init_biases  = biases;
+            })
     end

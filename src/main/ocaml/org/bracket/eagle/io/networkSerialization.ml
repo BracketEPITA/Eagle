@@ -1,30 +1,24 @@
 let serialize path network = Network.(
     let out = open_out_bin path in
     let data = network#get_data in 
-    Marshal.to_channel out data.layers [];
-    Marshal.to_channel out data.weights [];
-    Marshal.to_channel out data.biases [];
-    let activations = Array.init (Array.length data.activations) (fun i ->
-        data.activations.(i).ActivationFunction.name
-    ) in
-    Marshal.to_channel out activations [];
+    Marshal.to_channel out data.size_inputs  [];
+    Marshal.to_channel out data.size_outputs [];
+    Marshal.to_channel out data.init_weights [];
+    Marshal.to_channel out data.init_biases  [];
     close_out out;
 )
 
 let deserialize path = Network.(
     let input = open_in_bin path in
-    let layers  = (Marshal.from_channel input : float array array) in
-    let weights = (Marshal.from_channel input : float array array) in
-    let biases  = (Marshal.from_channel input : float array array) in
-    let raw_activations = (Marshal.from_channel input : string array) in
-    let activations = Array.init (Array.length raw_activations) (fun i ->
-        ActivationFunction.get raw_activations.(i)
-    ) in
+    let size_inputs  = (Marshal.from_channel input : int) in
+    let size_outputs = (Marshal.from_channel input : int) in
+    let init_weights = (Marshal.from_channel input : Matrix.matrix array) in
+    let init_biases  = (Marshal.from_channel input : float array array) in
     close_in input;
     new basic_network {
-        layers  = layers;
-        weights = weights;
-        biases = biases;
-        activations = activations;
+        size_inputs  = size_inputs;
+        size_outputs = size_outputs;
+        init_weights = init_weights;
+        init_biases  = init_biases;
     }
 )

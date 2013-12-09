@@ -26,7 +26,6 @@ let resize img new_width new_height =
         done
     done;
     
-    Printf.printf "1%!"; 
     for y = 0 to new_height - 1 do
          for x = 0 to new_width - 1 do
             Sdlvideo.put_pixel_color tmp x y tmpArr.(y * new_width + x)

@@ -1,44 +1,79 @@
-type 'a matrix = 'a array array
+type matrix = float array array
 
-let make (w,h) v =
-    Array.make h (Array.make w v)
+exception Invalid_dimension
 
-let init (w,h) f =
-    Array.init h (fun j ->
-        Array.init w (fun i -> 
-            f (i,j)
-        )
-    )
+let col_dim m = Array.length m
+let row_dim m = Array.length m.(0)
+let get m i j = m.(i).(j)
 
-let dimension (m : 'a matrix) = ((Array.length m.(0)), (Array.length m))
-
-let clone (m : 'a matrix) = let (w,h) = dimension m in init (w,h) (fun (i,j) -> m.(j).(i))
-
-let iter f (m : 'a matrix) =
-    Array.iter (fun row ->
-        Array.iter (fun e -> 
-            f e
-        ) row
-    ) m
-
-
-let iterij f (m : 'a matrix) =
-    Array.iteri (fun j row ->
-        Array.iteri (fun i e -> 
-            f (i,j) e
-        ) row
-    ) m
-
-let swap (i,j) (k,l) (m : 'a matrix) =
-    let swp = m.(i).(j) in (
-        m.(i).(j) <- m.(k).(l);
-        m.(k).(l) <- swp
-    )
-
-let print_matrix printf (m : 'a matrix) =
-    iterij (fun (i,j) e -> 
-        if i = 0 then print_newline ();
-        printf e;
-        print_string "\t";
-    ) m
-
+let copy a = Array.map (Array.copy) a
+	
+let unsafe_set m i j x = Array.unsafe_set (Array.get m i) j x
+let unsafe_get m i j = Array.unsafe_get (Array.unsafe_get m i) j
+	
+let init col_dim row_dim f =
+	let res = Array.create col_dim [||] in
+	for i=0 to col_dim - 1 do
+		Array.unsafe_set res i (Array.create row_dim (f i 0));
+		for j=1 to row_dim - 1 do
+			Array.unsafe_set (Array.unsafe_get res i) j (f i j)
+		done;
+	done;
+	res
+	
+let apply f = function
+	| [|[||]|] -> ()
+	| m ->
+	let col_dim = col_dim m in
+		let row_dim = row_dim m in
+		for i=0 to col_dim - 1 do
+			let line = Array.unsafe_get m i in
+			for j=0 to row_dim - 1 do
+				Array.unsafe_set line j (f (Array.unsafe_get line j))
+			done;
+		done
+	
+let applyij (f : int -> int -> 'a -> 'a) = function
+	| [|[||]|] -> ()
+	| m ->
+		let col_dim = col_dim m in
+		let row_dim = row_dim m in
+		for i=0 to col_dim - 1 do
+			let line = Array.unsafe_get m i in
+			for j=0 to row_dim - 1 do
+				Array.unsafe_set line j (f i j (Array.unsafe_get line j))
+			done;
+		done
+	
+	
+let random col_dim row_dim range =
+	Random.self_init ();
+	let float () =
+		if Random.bool () then Random.float range
+		else -. (Random.float range) in
+	let res = Array.create col_dim [||] in
+	for i=0 to col_dim - 1 do
+		let new_line = Array.create row_dim (float()) in
+		Array.unsafe_set res i new_line;
+		for j=1 to row_dim - 1 do
+			Array.unsafe_set new_line j (float())
+		done
+	done;
+	res
+	
+let mul_vect m v =
+	let vec_dim = Array.length v in
+	let col_dim = col_dim m in
+	let row_dim = row_dim m in
+	if row_dim <> vec_dim then raise Invalid_dimension
+	else (
+		let res = Array.create col_dim 0. in
+		for i=0 to col_dim - 1 do
+			let sum = ref 0. in
+			for j=0 to row_dim - 1 do
+				sum := !sum +. (unsafe_get m i j) *. (Array.unsafe_get v j)
+			done;
+			Array.unsafe_set res i !sum
+		done;
+		res
+	)

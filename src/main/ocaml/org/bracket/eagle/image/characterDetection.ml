@@ -15,18 +15,16 @@ yMax) =
                         localYMax := max !localYMax y;
 
                         let average20 = (yMaxi - yMini) / 2  in
-                        for y = max (y - average20) yMini  to min (y + average20) yMaxi do
+                        for y = max (y - average20) yMini 
+                        to min (y + average20) yMaxi do
                             for x = x - 2 to x + 2 do
                                 findAdjacentRec x y
                             done
                         done
                     )
     in 
-    if Sdlvideo.get_pixel_color src x y = Sdlvideo.black then
-        (
-            findAdjacentRec x y;
-            SDLUtils.drawRectangle dst (!localXMin, !localXMax, !localYMin, !localYMax) Sdlvideo.red
-        )
+        findAdjacentRec x y;
+        (!localXMin, !localXMax, !localYMin, !localYMax)
 
 
 let put_pixel = Sdlvideo.put_pixel_color
@@ -70,17 +68,51 @@ let makeLines img (x0, y0, xMax, yMax) =
     lines
 
 
-let detect (x0, y0, xMax, yMax) src dst = 
+let detect (x0, y0, xMax, yMax) src dst network =
+    let str = ref "" in
     let imageArray = Array.make_matrix (yMax - y0) (xMax - x0) false in
     let lines = makeLines src(x0, y0, xMax, yMax)  in
+    let previousy = ref 0 in
+    let previousx = ref 0 in
     for y = y0 to yMax - 1 do 
         for x = y0 to xMax - 1 do
-            if Sdlvideo.get_pixel_color dst x y <> Sdlvideo.red then    
+            if Sdlvideo.get_pixel_color dst x y = Sdlvideo.black then    
                 put_pixel dst x y (Sdlvideo.get_pixel_color src x y);
                 let (localYMin, localYMax) = getMinMax lines y (y0, yMax) in 
                 if not imageArray.(y).(x) then
-                    findAdjacent (x, y) (src, dst) imageArray (localYMin,
-                    localYMax) (x0, y0, xMax, yMax) ;
+                    let (xmin,ymin,xmax,ymax) = findAdjacent (x, y) (src, dst) 
+                        imageArray (localYMin, localYMax) (x0, y0, xMax, yMax) 
+                    in 
+                    if ymin - !previousy > 5 then
+                        str := !str ^ "\n";
+                    previousy := ymin;
+                    if xmin - !previousx > 9 then
+                        str := !str ^ " ";
+                    previousx := xmin;
+                    let glyph = 
+                        Sdlvideo.create_RGB_surface_format 
+                            src [] (xmax - xmin) (ymax - ymin)
+                    in
+                    SDLUtils.imageiter (fun i j ->
+                        let px = 
+                            Sdlvideo.get_pixel_color 
+                                src (xmin + i) (ymin + j) in
+                        Sdlvideo.put_pixel_color glyph i j px
+                    ) glyph;
+                    let s = Network.input_matrix_size in
+                    let resized = Resize.resize glyph (s, s) in
+                    let (w,h) = SDLUtils.get_dims resized in
+                    let mat = Array.make (s*s) (-1.) in
+                    for j  = 0 to w - 1 do
+                        for i = 0 to h - 1 do 
+                            if Sdlvideo.get_pixel_color resized i j =
+                                Sdlvideo.black then 
+                                mat.(i + j*s) <- 1.;
+                        done;
+                    done;
+                    let out = network#feed mat in
+                    str := !str ^ (String.make 1 (FontUtils.from_binary out))
         done
-    done
+    done;
+    !str
 

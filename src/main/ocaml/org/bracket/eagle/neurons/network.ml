@@ -1,115 +1,157 @@
-let (++)  = Math.Universe.(++)
-let (+.=) = Math.Universe.(+.=)
-let (/.=) = Math.Universe.(/.=)
+exception Wrong_input
+exception Wrong_input_size
+
+type vector = float array
+
+type layer = {
+	weights : Matrix.matrix;
+	bias : vector;
+}
 
 module ActivationFunction = struct
     type func = {
-        f : (float -> float);
-        derivative : (float -> float);
-        name : string;
+        f  : (float -> float);
+        f' : (float -> float);
     }
-    let get = 
-        let functions = Hashtbl.create 10 in
-        Hashtbl.add functions "linear" {
-            f = (fun (x : float) -> x);
-            derivative = (fun x -> 1.);
-            name = "linear";
-        };
-        Hashtbl.add functions "sigmoid" {
-            f = (fun x -> 1. /. (1. +. exp(-. x)));
-            derivative = (fun x -> x *. (1. -. x) +. 0.1);
-            name = "sigmoid";
-        };
-        Hashtbl.add functions "tanh" {
-            f = (fun x -> tanh x);
-            derivative = (fun x -> 1. -. x *. x);
-            name = "tanh";
-        };
-        fun name -> Hashtbl.find functions name
 
-    let linear  = get "linear"
-    let sigmoid = get "sigmoid"
-    let tanh    = get "tanh"
+    let sigmoid = {
+        f  = (fun x -> 1. /. (1. +. exp(-. x)));
+        f' = (fun x -> x *. (1. -. x));
+    }
 end
 
-let input_size = 10
-
-type dataset = {
-    mutable inputs  : float array list;
-    mutable outputs : float array list;
-}
-
-let new_dataset () =
-    {inputs = []; outputs = []}
-
-let add_entry data inputs expected =
-    data.inputs <- inputs::data.inputs;
-    data.outputs <- expected::data.outputs
-
 type network_data = {
-    layers  : float array array;
-    weights : float array array;
-    biases  : float array array;
-    activations : ActivationFunction.func array;
+    size_inputs  : int;
+    size_outputs : int;
+    init_weights : Matrix.matrix array;
+    init_biases  : vector array;
 }
 
-class virtual network (data : network_data) =
-    object (this)
+let input_matrix_size = 15
+
+let shuffle a =
+    Random.self_init();
+    for i = Array.length a downto 1 do
+	    let rand = Random.int i in
+	    let temp = a.(rand) in
+	    a.(rand) <- a.(i-1);
+	    a.(i-1) <- temp
+    done
+
+let iter_random f a =
+    let len = Array.length a in
+    let indices = Array.init len (fun i -> i) in
+    shuffle indices;
+    Array.iter (fun i -> f a.(i)) indices
+
+let array_map2 f a1 a2 =
+	let len = Array.length a1 in
+	if len <> Array.length a2 then
+		raise (Invalid_argument "Array.map2");
+	if len = 0 then [||]
+	else (
+		let r = Array.create len 
+            (f (Array.unsafe_get a1 0) (Array.unsafe_get a2 0)) in
+		for i = 1 to len - 1 do
+			Array.unsafe_set r i 
+                (f (Array.unsafe_get a1 i) (Array.unsafe_get a2 i))
+		done;
+		r
+	)
+
+class virtual network input_size output_size =
+	object (self)
+		method check_input_size (input : vector) =
+			if (Array.length input) <> input_size then 
+                (raise Wrong_input_size)
+		method virtual feed : float array -> float array
+	end
+
+class basic_network (data : network_data) =
+	object (self)
+    	inherit network data.size_inputs data.size_outputs as network
+	
+		val layers_nb = Array.length data.init_weights
+		val layers =
+			array_map2
+				(fun w b -> { weights = w; bias = b})
+				data.init_weights data.init_biases
+		
+		method getLayersNb () = layers_nb
+		
+        method private feed_layer input layer = (
+	        let potential = (Matrix.mul_vect layer.weights input) in
+	        Vector.diff ~on:potential layer.bias;
+	        Vector.apply ActivationFunction.(sigmoid.f) potential;
+        	potential
+        )
+
         method get_data = data
-        method virtual get_layer : int -> float array
-        method virtual set_values : float array -> float array
-    end
 
-class basic_network (data : network_data) = 
-    object (this)
-        inherit network data
+		method feed input =
+			self#check_input_size input;
+			Array.fold_left self#feed_layer input layers
+		
+		method private feedLayersResults input =
+			network#check_input_size input;
+			let results = Array.create layers_nb [||] in
+			let temp = ref input in
+			for i=0 to layers_nb - 1 do
+				temp := self#feed_layer !temp layers.(i);
+				results.(i) <- !temp
+			done;
+			results
+		
+		method private getResultsErrors input desired =
+			let results = self#feedLayersResults input in
+			let output = results.(layers_nb - 1) in
+			let errors = Array.create layers_nb [||] in
+			errors.(layers_nb-1) <-
+				array_map2 (fun d o -> (d -. o) 
+                    *. ActivationFunction.(sigmoid.f') (o)) desired output;
+			for index=2 to layers_nb do
+				let k = layers_nb - index in
+				let weights = layers.(k+1).weights in
+				let layer_size = Matrix.col_dim layers.(k).weights in
+				errors.(k) <- Array.init layer_size (fun i ->
+					let error = ref 0. in
+					for j=0 to (Matrix.col_dim weights) - 1 do
+						error := !error +. (Matrix.get weights j i) 
+                            *. errors.(k+1).(j)
+					done;
+					error := !error 
+                        *. (ActivationFunction.(sigmoid.f') results.(k).(i));
+					!error
+                )
+			done;
+			(results, errors)
 
-        val mutable training = (
-            fun 
-                (pre : (int -> unit))
-                (post : (int -> float -> unit))
-                (data : dataset)
-                (network : network) 
-            -> () 
-        )
+        method train rate base = 
+            iter_random (fun (i, d) -> self#train0 rate i d) base
 
-        method get_layer i = (
-            data.layers.(i)
-        )
+		method private train0 rate input desired =
+			let (results, errors) = self#getResultsErrors input desired in
 
-        method set_values inputs = (
-            let compute_layer index = (
-                let layer      = data.layers.(index)            in
-                let previous   = data.layers.(index - 1)        in
-                let weights    = data.weights.(index - 1)       in
-                let biases     = data.biases.(index - 1)        in
-                let activation = data.activations.(index - 1)   in
-                for i = 0 to Array.length layer - 1 do
-                    let sum = ref 0. in
-                    Array.iteri (fun w prev -> 
-                        sum := !sum +. weights.(w) *. prev +. biases.(w);
-                    ) previous;
-                    layer.(i) <- activation.ActivationFunction.f !sum;
-                done
-            ) in
-            Array.iteri (fun i input ->
-                data.layers.(0).(i) <- input;
-            ) inputs;
-            for i = 1 to Array.length data.layers - 1 do 
-                compute_layer i;
-            done;
-            data.layers.(Array.length data.layers - 1)
-        )
-        
-        method set_training_method train =
-            training <- train
+		    (*Weights and bias rectifications*)
+			for k=0 to layers_nb - 1 do
+				let prev_results = if k=0 then input else results.(k-1) in
+				
+				Matrix.applyij
+					(fun i j x -> 
+                        x +. rate *. errors.(k).(i) *. prev_results.(j)
+                    ) layers.(k).weights;
+					
+				Vector.applyi
+					(fun i x -> x -. rate *. errors.(k).(i))
+					layers.(k).bias
+			done
+		
+		method copy () =
+			let copy_layer l =
+				{ weights = Matrix.copy l.weights;
+				  bias = Array.copy l.bias; } in
+			let new_layers = Array.map copy_layer layers in
+			{< layers = new_layers >}
+		
+		end
 
-        method train 
-            ?pre:(pre=(fun epoch -> ())) 
-            ?post:(post=(fun epoch error -> ())) 
-            (data : dataset)
-        = (
-            training pre post data (this :> network)
-        )
-
-    end
