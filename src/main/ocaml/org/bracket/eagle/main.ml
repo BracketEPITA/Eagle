@@ -55,29 +55,6 @@ let apply str dest f =
 let main () =
     begin
         let exitShell = ref false in
-        
-        let builder = new NetworkFactory.factory in
-            builder#add_layer {
-                NetworkFactory.size = 2; 
-                NetworkFactory.has_bias = true; 
-                NetworkFactory.activation = Network.ActivationFunction.sigmoid
-            };
-            builder#add_layer {
-                NetworkFactory.size = 4000;
-                NetworkFactory.has_bias = true;
-                NetworkFactory.activation = Network.ActivationFunction.sigmoid
-            };
-            builder#add_layer {
-                NetworkFactory.size = 1;
-                NetworkFactory.has_bias = false;
-                NetworkFactory.activation = Network.ActivationFunction.sigmoid
-            };
-        let data = Network.new_dataset () in
-            Network.add_entry data [|-1.; -1.|] [|0.|];
-            Network.add_entry data [|1.; -1.|]  [|1.|];
-            Network.add_entry data [|-1.; 1.|]  [|1.|];
-            Network.add_entry data [|1.; 1.|]   [|0.|];
-        let network = ref builder#build in
         while not !exitShell do
             sdl_init ();
             (try
@@ -130,10 +107,6 @@ let main () =
                         
                         let img = Sdlloader.load_image words.(1) in
                         let dst = Resize.resize img (500, 500) in
-
-                        let (w, h)      = get_dims img in
-                        let disp = Sdlvideo.set_video_mode w h [`DOUBLEBUF] in     
-                        show img disp;
                         wait_key ();
 
                         
@@ -189,28 +162,7 @@ let main () =
                                 (CharacterDetection.detect (ios words.(3), ios
                                 words.(4), ios words.(5), ios words.(6)))
                     )
-                    | "mknw" -> (
-                        network := builder#build
-                    )
-                    | "trnw" -> (
-                        (!network)#set_training_method (BackPropagation.train);
-                        (!network)#train ~post:(fun i error ->
-                            if i mod 100 = 0 then Printf.printf "epoch %d : error = %f\n" i error;
-                        ) data;
-                    )
-                    | "setv" -> (
-                        argCheck 3 words;
-                        let inputs = [|
-                            float_of_string words.(1);
-                            float_of_string words.(2);
-                        |] in 
-                        let outputs = (!network)#set_values inputs in
-                            print_string "outputs = [";
-                            Array.iter (fun e -> 
-                                Printf.printf "%f " e;
-                            ) outputs;
-                            print_string "]\n";
-                    )
+        
                     | "exit" -> (
                         exitShell := true
                     )
@@ -240,6 +192,6 @@ let main () =
             exit 0
     end
 
-let _ = main ()
-
-
+    let _= 
+    SDLUtils.sdl_init ();
+    Gui.startInterface ()
