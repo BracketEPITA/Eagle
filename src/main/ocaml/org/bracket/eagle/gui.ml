@@ -160,7 +160,6 @@ let eagl_button =
     |None   -> ()
     in
   (*final text to display*)
-  let write ()= text#buffer#insert("")in
   let erase ()=text2#buffer#delete
     ~start:text2#buffer#start_iter
     ~stop:text2#buffer#end_iter in
@@ -200,40 +199,34 @@ let eagl_button =
         )
     )
   in
-
-  let write6 ()=
-    erase();
-    text2#buffer#insert("proceeding some nice character detection...");
-    let img = Sdlloader.load_image !path in
-    let (w,h) = SDLUtils.get_dims img in
-    let dst = Sdlvideo.create_RGB_surface_format img [] w h in
-    let txt = CharacterDetection.detect (0, 0, w, h) img dst (!network) in
-    
-    text#buffer#delete;
-    text#buffer#insert txt
-  in
-  let write7 ()=
-    erase();
-    text2#buffer#insert("proceeding some hot scaling...")in
-  let write8 ()=
-    erase();
-    text2#buffer#insert("proceeding some genius text detection...")in
   let write9 ()=
-    erase();
-    text2#buffer#insert("...Eagle is done ;-)")in
+    	erase();
+    	text2#buffer#insert("...Eagle is done ;-)");
+    	let img = Sdlloader.load_image !path in
+    	let mat = Array.make (15 * 15) 0. in
+    	for y = 0 to 14 do
+    		for x = 0 to 14 do
+    			mat.(y * 15 + x) <- if 
+    			(Sdlvideo.get_pixel_color img x y) = (0, 0, 0) then 1. else 0.
+    		done
+    	done;
+    	let out = (!network)#feed mat in
+    	let str = String.make 1 (FontUtils.from_binary out) in
+    	text#buffer#insert(str) in
+
+		
+  
   let action ()=
     text#buffer#delete
     ~start:text#buffer#start_iter
     ~stop:text#buffer#end_iter;
     display();
-    write3();(* binarisation here <<--- *)
-    (*write4();(* detection d'angle here <<--- *)
-    write5();*)
-    write6();
     write9() in(* rotation here <<--- *)
     
   ignore(btn#connect#clicked ~callback:action);
   btn
+
+
 
 (* Button help *)
 let help_button =
@@ -306,10 +299,6 @@ let confirm _ =
 
 let startInterface () =
   network := NetworkSerialization.deserialize "network.bin";
-    let img = Sdlloader.load_image !path in
-    let (w,h) = SDLUtils.get_dims img in
-    let dst = Sdlvideo.create_RGB_surface_format img [] w h in
-    let txt = CharacterDetection.detect (0, 0, w, h) img dst (!network) in
   window#show ();
   ignore (window#event#connect#delete confirm);
   GMain.main ()
