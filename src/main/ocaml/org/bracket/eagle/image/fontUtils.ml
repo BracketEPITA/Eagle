@@ -32,7 +32,6 @@ let generate_bitmap font str =
         let size = Network.input_matrix_size in
         let glyph = Sdlttf.(render_glyph font (SOLID Sdlvideo.black) char) in
         let get   = Sdlvideo.get_pixel_color glyph in
-        let (w,h) = SDLUtils.get_dims glyph in
         let input = Array.make (size * size) (-1.0) in
         SDLUtils.imageiter (fun i j ->
             input.(i + j*size) <- 

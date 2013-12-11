@@ -163,43 +163,7 @@ let eagl_button =
   let erase ()=text2#buffer#delete
     ~start:text2#buffer#start_iter
     ~stop:text2#buffer#end_iter in
-  let write3 ()=
-    erase();
-    text2#buffer#insert("proceeding some awesome binarisation...");
-    text2#buffer#insert(!path);
-    	let img = Sdlloader.load_image !path in
-    	let (w,h) = SDLUtils.get_dims img in
-    	let dst = Sdlvideo.create_RGB_surface_format img [] w h in
-    	Binarisation.abin img dst;
-    	path := !path ^ ".bmp";
-    	Sdlvideo.save_BMP dst (!path);
-    	List.iter result#remove result#children;
-    	ignore (GMisc.image
-	      ~file: (!path)
-	      ~packing:result#add()
-	  	)
-	in
-  let write4 ()=
-    erase();
-    text2#buffer#insert("proceeding some great angle detection...");
-    let img = Sdlloader.load_image !path in
-    angle := Hough.hough img
-  in
-  let write5 ()=
-    erase();
-    text2#buffer#insert("proceeding some smoothy rotation..." ^ string_of_float !angle);
-    let img = Sdlloader.load_image !path in
-    if (abs_float !angle > 0.02 && !angle >= 0.) then (
-        let dst = Rotation.rotate (!angle +. 0.01) img in
-        Sdlvideo.save_BMP dst (!path);
-        List.iter result#remove result#children;
-        ignore (GMisc.image
-            ~file: (!path)
-            ~packing:result#add()
-        )
-    )
-  in
-  let write9 ()=
+    let write9 ()=
     	erase();
     	text2#buffer#insert("...Eagle is done ;-)");
     	let img = Sdlloader.load_image !path in
@@ -213,7 +177,6 @@ let eagl_button =
     	let out = (!network)#feed mat in
     	let str = String.make 1 (FontUtils.from_binary out) in
     	text#buffer#insert(str) in
-
 		
   
   let action ()=
@@ -221,7 +184,7 @@ let eagl_button =
     ~start:text#buffer#start_iter
     ~stop:text#buffer#end_iter;
     display();
-    write9() in(* rotation here <<--- *)
+    write9() in
     
   ignore(btn#connect#clicked ~callback:action);
   btn
